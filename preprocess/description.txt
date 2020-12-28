@@ -1,0 +1,67 @@
+This program implements data pre-processing for training of ML algorithms on
+detection of introns of DNA sequences. The pre-processing is broken down into
+multiple steps, each implemented as a separate sub-command (see below).
+
+There are two directories with input data to the pre-processing pipeline:
+
+* A directory with FASTA files with DNA sequences. Each FASTA file contains
+  (multiple) DNA sequencing scaffolds of an individual organism.
+
+* A directory with General Feature Format (GFF) files which contain annotation
+  of the DNA sequences. Each GFF files contains annotation of a single
+  organisms' DNA.
+
+When referred to a splice-site, a 0-based index of a first intron symbol (donor
+site) or first exon symbol (acceptor site) is considered. For example, the
+following sequence of E-s and I-s, where E-s are within-exon symbols and I-s
+are within-intron symbols, contains one “true” donor splice-site at index 3
+and one “true” acceptor splice-site at index 7.
+
+`EEEIIIIEE`
+
+Note that only positions with canonical di-nucleotides (`GT` for donor and `AG`
+for acceptor) are considered. Given a sequence `s` with donor splice-site at
+index `i` and acceptor splice-site at index `j` the following statements are
+true:
+
+`s[i] == 'G' and s[i + 1] == 'T'`
+`s[j - 2] == 'A' and s[j - 1] == 'G'`
+
+The pre-processing pipeline has the following steps / sub-commands:
+
+* `features`: two CVS files are created for each organism:
+
+  * A CSV with gene positions withing DNA sequences (FASTA files). The CSV has
+    this columns: `id`, `scaffold name`, `start` (0-based, inclusive), `end`
+    (0-based, exclusive).
+  * A CSV with intron positions. The CSV has this columns: `id`, `scaffold`,
+    `start` (0-based, inclusive), `end` (0-based, exclusive).
+
+* `positions`: Four NPZ files with “true donor”, “false donor”, “true acceptor”
+  and “false acceptor” positions (0-indexed, u64) within DNA sequences are
+  created for each organism. Each NPZ file contains a named array for each
+  DNA scaffold named after the scaffold.
+
+  Candidate splice-sites are extracted only from “genes” (see `features`
+  command). No sub-sampling is done, all candidate splice-site and all real
+  splice-site with consensus dinucleotides are extracted.
+
+* `samples`: generates NPZ files with “positive” and “negative” examples of
+  intron donor and acceptor splice-sites. Each NPZ files contains `input`,
+  `output` and `position` arrays.
+
+  Number of samples per organism per category (donor/acceptor,
+  positive/negative example) is configurable. Samples are randomly sub-sampled.
+
+  Apart from sample NPZ files, a CSV file named `samples.csv` is created in
+  each organisms' samples directory. The CSV has this columns: `path` (relative
+  to the organisms' samples directory), `is_positive` (which is `true` or
+  `false`) and `sample_type_name`.
+
+  * `input` is one-hot-encoded sequence of DNA symbols (`A`, `T`, `C`, `G`, `N`
+    respectively) of fixed length with fixed offset from the splice-site.
+
+  * `output` is a either `1.0` (true splice-site) or `0.0` (false splice-site).
+
+  * `position` is 0-based position of the splice-site within the `input`
+    sequence.

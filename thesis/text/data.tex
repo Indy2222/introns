@@ -1,0 +1,171 @@
+\chapter{\label{ch:data}Data}
+
+\minitoc
+
+Source DNA sequence data and its annotations were downloaded from the Joint
+Genome Institute\footnote{https://jgi.doe.gov/fungi}
+\cite{grigoriev2014mycocosm}. The data contains FASTA files with the DNA
+sequence scaffolds of individual organisms and GFF files with DNA feature
+annotations.
+
+As part of this work, all data was uploaded to Google Cloud Storage in a
+compressed form, and an automated download and extraction script was created.
+
+\section{\label{ch:data:file-formats}File Formats}
+
+A FASTA file is a text-based representation of DNA sequences. Such a file
+contains header lines beginning with character \Verb_>_, followed by an
+identifier of the sequence on successive lines. The sequence itself consists of
+characters \Verb_ATCGN_ that represent adenine, thymine, cytosine, guanine, and
+``any character'' respectively. In the data, each sequence within a FASTA file
+represents a scaffold.
+
+The sequences in FASTA files represent scaffolds. A scaffold links together a
+non-contiguous series of genomic sequences, comprising sequences separated by
+gaps of known length. The linked sequences are typically contiguous sequences
+corresponding to read overlaps \cite{ison2013edam}.
+
+The following sample is the first four lines of the FASTA file with the DNA
+sequence of the organism Verticillium dahliae.
+
+\begin{Verbatim}[fontsize=\small]
+>Supercontig_1.1
+AGTATCATGAAGGAAGAACAAGTTGAGGGACATAATTACCTGGGGTGCGGCGCTTACAAGTAAGGGTCGC
+TGGGACATCGACCTGGAGGAGGAGAATCATGTAACGCCCCAGCCCGGTCGTCACCAGGACACCAGGCAGG
+ACACCCCGCAGGCGATCGGACGCGCCGCACGGACCCACAGGATCACTCACGTGACCGTGACCAGATCACG
+\end{Verbatim}
+
+General Feature Format (GFF) is a file with DNA feature annotations. The file
+format has three versions. The latest version 3 is used in the data. GFF is a
+text-based file in which each line represents a feature annotation. An
+annotation consists of nine tab-delimited attributes \cite{gff}:
+
+\begin{itemize}
+\item sequence -- name of the sequence, scaffold in our case, where the
+  sequence is located,
+\item source -- source of the feature, for example, name an institution,
+\item feature -- type of the feature, only feature type \Verb_exon_ are used in
+  this work,
+\item start -- 1-based, inclusive offset of start of the feature,
+\item end -- 1-based, inclusive offset of end of the feature,
+\item score -- confidence in validity of the feature,
+\item strand -- DNA strand where the feature is located. It is one of \Verb_+_,
+  \Verb_-_ or \Verb_._ for positive, negative, and undetermined respectively,
+\item phase -- phase of CDS features which is always one of 0, 1 or 2,
+\item attributes -- additional feature attributes. Format of this field is not
+  generally determined. In GFF files used in this work, it contains
+  colon-delimited list of attributes, where each is space-delimited attribute
+  name and value.
+\end{itemize}
+
+The following sample is the first four lines of a GFF file with annotations of
+the DNA sequence of the organism Verticillium dahliae.
+
+\begin{Verbatim}[fontsize=\scriptsize]
+Supercontig_1   JGI exon    76  572 .   +   .   name "VDBG_00001T0"; transcriptId 224
+Supercontig_1   JGI CDS 406 572 .   +   0   name "VDBG_00001T0"; proteinId 1; exonNumber 1
+Supercontig_1   JGI start_codon 406 408 .   +   0   name "VDBG_00001T0"
+Supercontig_1   JGI exon    631 1621    .   +   .   name "VDBG_00001T0"; transcriptId 224
+\end{Verbatim}
+
+\section{\label{ch:data:taxonomy}Taxonomy}
+
+The data consists of eight different phyla, but $89.8\%$ of the organisms (774
+of 862) are from Ascomycota and Basidiomycota phyla which make the Dikarya
+subkingdom. See Table \ref{table:data:num-organisms} with the number of
+organisms per phylum and Figure \ref{fig:data:tree} with a phylogenetic tree of
+available fungi.
+
+\begin{table}
+  \begin{center}
+    \begin{tabular}{ | l | c | }
+      \hline
+      \textbf{Phylum} & \textbf{Number of Organisms} \\
+      \hline
+      Ascomycota & 479 \\
+      Basidiomycota & 295 \\
+      Blastocladiomycota & 4 \\
+      Cryptomycota & 1 \\
+      Chytridiomycota & 21 \\
+      Microsporidia & 8 \\
+      Mucoromycota & 38 \\
+      Zoopagomycota & 16 \\
+      \hline
+    \end{tabular}
+  \end{center}
+  \caption{\label{table:data:num-organisms}Phyla in the dataset}
+\end{table}
+
+\begin{figure}
+  \centering
+  \includegraphics[width=0.8\textwidth]{figures/taxonomy-tree.png}
+  \caption{Phylogenetic tree of fungi with sequenced genomes as displayed on
+    the website of Joint Genome Institute \cite{grigoriev2014mycocosm}}
+  \label{fig:data:tree}
+\end{figure}
+
+\section{\label{ch:data:stats}Data Statistics}
+
+\begin{table}
+  \begin{center}
+    \begin{tabular}{ | l | c | }
+      \hline
+      \textbf{Taxonomy Rank} & \textbf{Number of Taxa} \\
+      \hline
+      Phylum & 8 \\
+      Class & 46 \\
+      Order & 124 \\
+      Family & 307 \\
+      Genus & 566 \\
+      Species & 862 \\
+      \hline
+    \end{tabular}
+  \end{center}
+  \caption{Number of taxa on different taxonomy ranks}
+\end{table}
+
+In total, 16\,067\,492 introns, distributed over 5\,557\,272 individual genes
+,were identified from exon annotations on all 862 organisms in the dataset.
+This number includes only introns inside coding sequences, see Section
+\ref{ch:automation:features}. Also see Section \ref{ch:automation:overview}
+which includes the definition of gene used in this thesis.
+
+The cumulative length of all genes is 8\,396\,757\,084 or 8\,371\,133\,149,
+with overlaps counted only once. The cumulative length of all introns is
+1\,296\,667\,885 or 1\,293\,833\,629, with counting overlaps only once or
+roughly 15\% of genes.
+
+The mean gene length is $1510.9$ nucleotides and the mean intron length is
+$80.7$ nucleotides. As much as $93.5\%$ of the introns are 150 nucleotides long
+or less with a distinct peek in length distribution around 50 nucleotides. See
+Figure \ref{fig:data:intron-len-dist} with intron length distribution and
+Figure \ref{fig:data:intron-len-box-plot} that depicts a box plot of intron
+lengths on all available phyla.
+
+\begin{figure}
+  \centering
+  \includegraphics[width=0.8\textwidth]{figures/intron-length-hist.pdf}
+  \caption{Distribution of intron length over all organisms in the dataset}
+  \label{fig:data:intron-len-dist}
+\end{figure}
+
+In this work, only donors and acceptors with consensus dinucleotides were used,
+see Section \ref{ch:rcnn:candidates} for more information on this topic.
+
+In total, 15\,792\,942 donors and 15\,828\,432 acceptors were identified in the
+data. All occurrences of \Verb_GT_ for donors and \Verb_AG_ for acceptors at
+positions different from the positions of true splice sites were considered as
+false donors and false acceptors. Moreover, 411\,393\,734 false donors and
+498\,273\,594 false acceptors were found inside genes---this gives the
+frequency of one false donor per $20.3$ nucleotides and one false acceptor per
+$16.8$ nucleotides. False donors are $26.0$ times more frequent than true
+donors, and false acceptors are $31.2$ times more frequent than true acceptors
+in exon-intron areas.
+
+\begin{figure}
+  \centering
+  \includegraphics[width=0.8\textwidth]{figures/intron-length-box-plot.pdf}
+  \caption{Box plot with intron lengths on all phyla. Whiskers extend to 5\%
+    and 95\% percentiles.}
+  \label{fig:data:intron-len-box-plot}
+\end{figure}

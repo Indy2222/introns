@@ -1,0 +1,44 @@
+\chapter{\label{ch:motivation}Motivation}
+
+\minitoc
+
+DNA sequencing costs are sharply decreasing \cite{NHGRI_sequencing_costs}.
+GenBank is a genetic sequence database of all publicly available DNA sequences
+\cite{benson2012genbank}. The number of bases in the GenBank database has
+doubled approximately every 18 months from 1982 to present (2019), and its
+database consists of over 366 billion bases \cite{genbank_release_notes}. The
+consequence of ever-cheaper DNA sequencing and exponential sequence database
+growth is the need for an increased capacity for DNA data handling and
+analysis. An automated and scalable solution to DNA annotation would partially
+fulfill this need.
+
+Fungal and bacterial organisms play an important role in various ecosystems
+including the floor and soil of forests
+\cite{christensen2005wood}\cite{bani2018role}. Some fungal species are capable
+of decomposing cellulose and various biopolymers and are involved in the
+decomposition of deadwood and litter. The decomposition goes in stages, and in
+each stage different organisms with varying diversity contribute to the process
+\cite{bani2018role}. Nontrivial dependencies of different fungal organisms and
+decomposition stages were identified and a lot of the relationships are yet to
+be known \cite{bani2018role}. Decomposed wood and litter is important for some
+plant species \cite{bani2018role}. The presence of wood inhabiting fungi might
+be a good indicator of overall forest biodiversity \cite{christensen2005wood}.
+
+Not only for the previously mentioned reasons, the ability to identify fungal
+species in metagenomes recovered from soil and other environmental samples is a
+potent tool in the biological study of forests and other ecosystems. The task
+of fungal species identification in a metagenome is approached by searching for
+homologous genes in the DNA sequences by applying sequence alignment algorithms
+to all known protein and gene sequence databases. The search for homologs does
+not only allow the identification of known species, but also searches for
+novel, evolutionary related species.
+
+To achieve good search results, we detect and remove introns in long DNA
+sequence scaffolds before the search. This should improve protein sequence
+match scores because introns are spliced before RNA to protein translation. A
+reason for the improvement is that the match score of alignment algorithms for
+homologous DNA sequences is the highest in most preserved parts of such DNA
+sequences---i.e. exons. The functional regions of DNA sequences tend to be more
+highly conserved than the remaining parts of the DNA
+\cite{morgenstern2002exon}. See Section \ref{ch:background:alignment} for more
+information on sequence alignment.

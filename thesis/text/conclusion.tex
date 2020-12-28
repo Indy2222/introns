@@ -1,0 +1,49 @@
+\chapter{\label{ch:conclusion}Conclusion}
+
+\minitoc
+
+The goal of this work was to develop an algorithm for automated intron
+detection in fungal metagenomes with the use of neural networks. Emphasis was
+put on computational requirements and comparison with an existing intron
+detection pipeline based on support vector machines (SVM).
+
+The resulting pipeline contains two splice site classification models based on
+deep recurrent convolutional neural networks. As opposed to the pipeline based
+on SVM, no third intron model is used. The solution outperforms the approach
+based on SVM and requires 46 times less computational resources for
+classification. The neural networks also generalize in a better way than the
+SVM models, and therefore, only one model is used for all phyla.
+
+Up to 91.6\% introns on the Ascomycota phylum and 72.8\% introns on the
+Basidiomycota phylum are detected with the neural network-based pipeline.
+
+\section{Future Work}
+
+This work opens a possibility to implement an online, web-based service for
+intron detection and/or removal. This could be done as a simple webpage where
+the user uploads a FASTA file and gets a GFF file with automatically annotated
+introns within minutes. All computations could easily be distributed thanks to
+the design of the pipeline and characteristics of the data. Low CPU usage of
+the developed classification models makes this possibility economically
+feasible, see Chapter \ref{ch:evaluation}.
+
+A direction for further investigation is the generalization of the developed
+models. Interesting results could be obtained by evaluating the model
+performance on different kingdoms and analyzing the errors it makes. This
+raises two questions: how well and consistently the model performs when trained
+and evaluated on distant organisms and whether the same model architecture and
+approach works well on different kingdoms.
+
+Using the pre-trained models and utilizing transfer learning on organisms with
+a low amount of annotated data is also a possibility for future investigation.
+
+Using the models in quality assurance procedures of non-automated genome
+annotation is also an interesting topic worth further exploration. Paying more
+attention to the annotations that are in disagreement with the model
+predictions might improve the overall data quality with fixed effort spent.
+
+Performing in vitro or in vivo experiments might be laborious, time-consuming,
+and expensive. Using the developed in silico methods before the ``wet''
+research is started might save resources, time, and help future research to
+focus on promising areas. This is yet another area of potential future
+research.

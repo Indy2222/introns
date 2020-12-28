@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "training"
+version = "0.1.0"
+description = "Training, exporation and evaluation of RCNN on DNA data."
+authors = ["Martin Indra <martin.indra@mgn.cz>"]
+
+[tool.poetry.dependencies]
+python = "~3.8"
+docopt = "*"
+numpy = "*"
+pandas = "*"
+tensorflow = "^2.3.1"
+matplotlib = "*"
+scikit-learn = "*"
+statsmodels = "*"
+tqdm = "*"
+pydot-ng = "^2.0.0"
+
+[tool.poetry.dev-dependencies]
+pytest = "^5.0"

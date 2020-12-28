@@ -1,0 +1,652 @@
+\chapter{\label{ch:evaluation}Evaluation}
+
+\minitoc
+
+Detailed evaluation, inspection, and analysis of splice site classification
+networks, as well as the performance of the overall intron detection pipeline,
+is reported and discussed in this chapter.
+
+Section \ref{ch:evaluation:datasets} gives details of test sample selection and
+puts that into the context of other existing research, specific needs, and
+goals of this work. Section \ref{ch:evaluation:basic} reports several basic
+per-organism evaluation metrics, such as precision and recall, as well as
+prediction confidence distributions. Section \ref{ch:evaluation:comparison}
+compares the performance of the neural networks with the SVM developed in
+\cite{barucic}. Section \ref{ch:evaluation:cpu} describes the CPU usage of the
+neural networks and SVM; it also evaluates the possible cost of using the
+pipeline in the Google Cloud Platform.
+
+Section \ref{ch:evaluation:sensitivity} analyzes the sensitivity of the neural
+networks to single nucleotide mutations/swaps and compares that to known
+biological phenomena. Section \ref{ch:evaluation:proximity} reports the error
+rate of the networks on negative samples in proximity to a true splice site.
+Section \ref{ch:evaluation:lengths} describes the error rate of the network on
+introns of various lengths. Section \ref{ch:evaluation:correlation} evaluates
+the dependency of donor and acceptor splice site models. And finally, Section
+\ref{ch:evaluation:whole} discusses the overall gene prediction pipeline.
+
+\section{\label{ch:evaluation:datasets}Datasets}
+
+Prior to all experiments, the data was split into training, validation, and
+test datasets. The performance of splice site classification networks was
+evaluated on organisms that were not included in the training and validation
+datasets. The test dataset consists of eight organisms, each belonging to a
+different phylum. Data from organisms included in training datasets was not
+used in any experiment or evaluation before the final evaluation reported in
+this chapter. The selected test organisms are the same as in the work
+\cite{barucic} to allow for good comparison. See Table
+\ref{table:evaluation:test-set} which lists all organisms included in the test
+dataset.
+
+\begin{table}
+  \begin{center}
+    \begin{tabular}{ | l | l | l | }
+      \hline
+      \textbf{Phylum} & \textbf{Species} & \textbf{Organism ID} \\
+      \hline
+      Ascomycota & Aspergillus wentii & Aspwe1 \\
+      Basidiomycota & Mycena albidolilacea & Mycalb1  \\
+      Blastocladiomycota & Allomyces macrogynus & Allma1 \\
+      Chytridiomycota & Chytriomyces sp. MP71 & Chytri1 \\
+      Cryptomycota & Rozella allomycis & Rozal\_SC1 \\
+      Microsporidia & Encephalitozoon hellem & Enche1 \\
+      Mucoromycota & Lichtheimia corymbifera & Liccor1 \\
+      Zoopagomycota & Coemansia reversa & Coere1 \\
+      \hline
+    \end{tabular}
+  \end{center}
+  \caption{\label{table:evaluation:test-set}Organisms included in the test dataset}
+\end{table}
+
+The decision to split datasets on the organism lever rather than the sample
+level is motivated by the need to test the network ability in order to
+generalize previously unseen organisms. The network will be used in a pipeline
+executed on metagenomes containing large number of previously unseen organisms.
+This sharply contrasts with some studies on automated intron detection because
+it usually reports the results measured on organisms included in the training
+dataset \cite{zuallaert2018splicerover}.
+
+\section{\label{ch:evaluation:basic}Basic Metrics}
+
+One final neural network architecture was selected for the classification of
+both candidate donor splice sites and candidate acceptor splice sites. See
+Section \ref{ch:rcnn:architecture}. Two versions of the model with different
+input window sizes were selected for the final evaluation and usage. Model
+NN\,100 has an input window size of 100 nucleotides and model NN\,400 has an
+input window size of 400 nucleotides. The larger model, unsurprisingly, has
+better performance but at the cost of roughly $2.9\times$ higher CPU usage per
+classification. See Table \ref{table:rcnn:win-size-donor} and Table
+\ref{table:rcnn:win-size-acceptor} which compare the performance of the models
+with various input window sizes (evaluated on the validation dataset during the
+experimentation phase).
+
+The performances of donor splice site classification models are reported in
+Table \ref{table:evaluation:donor} and the performances of acceptor splice site
+models are reported in Table \ref{table:evaluation:acceptor}
+\tablefootnote{Only 20 positive donor samples and 19 positive acceptor samples
+  were used during the evaluation of organism Enche1.}. The low precision on
+some organisms is largely due to the high ratio of the number of candidate
+splice sites to the number of true splice sites. See Section
+\ref{ch:data:stats} on data statistics. Also see Section
+\ref{ch:rcnn:candidates} that describes which splice sites were included in the
+datasets.
+
+\begin{table}
+  \begin{center}
+    \begin{tabular}{ | l | d{2} | d{2} | d{2} | d{2} | d{2} | d{2} | }
+      \hline
+      & \multicolumn{3}{| l |}{\textbf{NN\,100}} & \multicolumn{3}{| l |}{\textbf{NN\,400}} \\
+      \hline
+
+      & \multicolumn{1}{| l |}{\textbf{Precision}}
+      & \multicolumn{1}{| l |}{\textbf{Recall}}
+      & \multicolumn{1}{| l |}{\textbf{AUC}}
+      & \multicolumn{1}{| l |}{\textbf{Precision}}
+      & \multicolumn{1}{| l |}{\textbf{Recall}}
+      & \multicolumn{1}{| l |}{\textbf{AUC}} \\
+
+      \hline
+      Allma1      & 55.8\% & 74.0\% & 96.1\% & 62.8\% & 82.3\% & 97.2\% \\
+      Aspwe1      & 53.3\% & 92.5\% & 98.3\% & 68.1\% & 94.0\% & 98.5\% \\
+      Chytri1     & 49.4\% & 71.4\% & 95.5\% & 65.1\% & 85.0\% & 97.7\% \\
+      Coere1      &  7.1\% & 61.8\% & 85.5\% &  9.0\% & 64.7\% & 87.8\% \\
+      Enche1      &  0.8\% & 100.0\% & 99.4\% & 1.0\% & 95.0\% & 98.2\% \\
+      Liccor1     & 56.2\% & 89.9\% & 98.0\% & 75.8\% & 94.8\% & 98.9\% \\
+      Mycalb1     & 61.9\% & 78.1\% & 95.2\% & 75.3\% & 82.4\% & 96.6\% \\
+      Rozal\_SC1  & 25.6\% & 40.3\% & 86.6\% & 35.7\% & 45.3\% & 90.0\% \\
+      \hline
+    \end{tabular}
+  \end{center}
+  \caption{\label{table:evaluation:donor}Performance of donor classification
+    models. Model NN\,100 has input window size of 100 nucleotides, starting at
+    the splice site and going downstream. Model NN\,400 has input window size
+    of 400 nucleotides, spanning exactly 200 nucleotides to both sides from the
+    splice site.}
+\end{table}
+
+\begin{table}
+  \begin{center}
+    \begin{tabular}{ | l | d{2} | d{2} | d{2} | d{2} | d{2} | d{2} | }
+      \hline
+      & \multicolumn{3}{| l |}{\textbf{NN\,100}} & \multicolumn{3}{| l |}{\textbf{NN\,400}} \\
+      \hline
+
+      & \multicolumn{1}{| l |}{\textbf{Precision}}
+      & \multicolumn{1}{| l |}{\textbf{Recall}}
+      & \multicolumn{1}{| l |}{\textbf{AUC}}
+      & \multicolumn{1}{| l |}{\textbf{Precision}}
+      & \multicolumn{1}{| l |}{\textbf{Recall}}
+      & \multicolumn{1}{| l |}{\textbf{AUC}} \\
+
+      \hline
+      Allma1      & 70.6\% & 80.2\% & 97.2\% & 66.3\% & 83.7\% & 97.4\% \\
+      Aspwe1      & 54.6\% & 93.4\% & 98.5\% & 56.9\% & 93.9\% & 98.6\% \\
+      Chytri1     & 59.1\% & 82.0\% & 97.3\% & 60.3\% & 84.9\% & 97.7\% \\
+      Coere1      &  5.9\% & 46.6\% & 83.5\% &  7.1\% & 57.0\% & 85.3\% \\
+      Enche1      &  0.3\% & 42.1\% & 91.9\% &  0.3\% & 42.1\% & 94.3\% \\
+      Liccor1     & 68.5\% & 93.5\% & 98.8\% & 72.3\% & 93.8\% & 98.9\% \\
+      Mycalb1     & 65.4\% & 80.8\% & 96.3\% & 63.9\% & 83.0\% & 96.7\% \\
+      Rozal\_SC1  & 12.0\% & 22.7\% & 79.6\% & 19.5\% & 30.1\% & 84.1\% \\
+      \hline
+    \end{tabular}
+  \end{center}
+  \caption{\label{table:evaluation:acceptor}Performance of acceptor
+    classification models. Model NN\,100 has input window size of 100
+    nucleotides, starting 100 nucleotides upstream from the splice site and
+    going downstream. Model NN\,400 has input window size of 400 nucleotides,
+    spanning exactly 200 nucleotides to both sides from the splice site.}
+\end{table}
+
+The neural networks output values between 0 and 1. This value needs to be
+compared to a threshold to obtain a binary classification. During the
+evaluation of all splice site classification models, the threshold was set to
+$0.5$. See Figure \ref{fig:evaluation:donor-cdf} and Figure
+\ref{fig:evaluation:donor-density} which depict the distribution of the
+prediction values on both positive and negative samples of the donor model.
+Figure \ref{fig:evaluation:acceptor-cdf} and Figure
+\ref{fig:evaluation:acceptor-density} visualize the same properties on the
+acceptor model.
+
+The confidence intervals visualized in Figure
+\ref{fig:evaluation:donor-density} and Figure
+\ref{fig:evaluation:acceptor-density} are calculated with Formula
+\ref{eq:evaluation:ci-low} and Formula \ref{eq:evaluation:ci-high} derived in
+\cite[p.~176]{johnson2005univariate}.
+
+\begin{equation}
+  \theta_L = 0.5 \chi^2_{2k, \alpha / 2}
+  \label{eq:evaluation:ci-low}
+\end{equation}
+
+\begin{equation}
+  \theta_U = 0.5 \chi^2_{2k + 2, 1 - \alpha / 2}
+  \label{eq:evaluation:ci-high}
+\end{equation}
+
+Kolmogorov–Smirnov statistic computed on the cumulative distribution functions
+of the prediction values on positive and negative samples is $0.83$ at $0.18$
+for the donor model and $0.79$ at $0.18$ for the acceptor model. The values
+imply the high ability of the model to discriminate positive and negative
+samples at the threshold point of $0.18$. During the evaluation and production
+use of the models, a higher threshold of $0.5$ was used to compensate for the
+high positive to negative sample rate ratio.
+
+The prediction distributions were measured over samples from all organisms
+included in the test dataset. In total, 10\,000 positive samples and 10\,000
+negative samples were included from each organism, except those which did not
+have enough annotated features. The only organism which was largely
+underrepresented was Enche1. Prediction distribution on different organisms,
+especially organisms from different phyla, differ. Likewise, the used sample
+set does not represent true organism distribution in nature or in extracted
+metagenomes. This implies the need for a careful interpretation of the plots.
+
+\begin{figure}
+  \centering
+  \includegraphics[width=0.8\textwidth]{figures/donor_evaluation/cdf.pdf}
+  \caption{Cumulative distribution function with Kolmogorov–Smirnov statistic
+    of prediction values from NN\,400 model on positive and negative samples of
+    donor splice sites. }
+  \label{fig:evaluation:donor-cdf}
+\end{figure}
+
+\begin{figure}
+  \centering
+  \includegraphics[width=0.8\textwidth]{figures/donor_evaluation/density.pdf}
+  \caption{Density of prediction values from NN\,400 model on positive and
+    negative samples of donor splice sites.}
+  \label{fig:evaluation:donor-density}
+\end{figure}
+
+\begin{figure}
+  \centering
+  \includegraphics[width=0.8\textwidth]{figures/acceptor_evaluation/cdf.pdf}
+  \caption{Cumulative distribution function with Kolmogorov–Smirnov statistic
+    of prediction values from NN\,400 model on positive and negative samples of
+    acceptor splice sites.}
+  \label{fig:evaluation:acceptor-cdf}
+\end{figure}
+
+\begin{figure}
+  \centering
+  \includegraphics[width=0.8\textwidth]{figures/acceptor_evaluation/density.pdf}
+  \caption{Density of prediction values from NN\,400 model on positive and
+    negative samples of acceptor splice sites.}
+  \label{fig:evaluation:acceptor-density}
+\end{figure}
+
+\section{\label{ch:evaluation:comparison}Comparison with SVM}
+
+Table \ref{table:evaluation:comp-svm} compares the true positive rate and true
+negative rate of two neural networks with different input window sizes and SVM,
+as initially developed in \cite{barucic}. The smaller neural network (NN\,100)
+had an input window of 100 nucleotides going from the splice site in the intron
+direction (downstream in the case of a donor and upstream in the case of an
+acceptor). The larger neural network (NN\,400) had a window size of 400
+nucleotides and spanned 200 nucleotides to both directions from the splice
+site. The SVM used for the evaluation was trained solely on data from the
+Basidiomycota phylum.
+
+Both neural networks produce much less false positive predictions compared to
+the SVM. Furthermore, the NN\,400 model outperforms the SVM in every
+measurement, except for $\mathit{TPR}$ on donors in the Basidiomycota phylum.
+
+The improvement in $\mathit{TNR}$ achieved with the neural networks is very
+important due to the large ratio of the false candidate splice sites to the
+true candidate splice sites.
+
+All classification methods in Table \ref{table:evaluation:comp-svm} were
+evaluated on the same dataset. Negative samples were taken from genetic regions
+defined as the area between the beginning of the first exon of the gene and the
+end of the last exon of the gene. These regions are wider than the CDS and
+intra-CDS regions used in other parts of this work, see Section
+\ref{ch:automation:overview}.
+
+\begin{table}
+  \begin{center}
+    \begin{tabular}{ | l | l | d{2} | d{2} | d{2} | d{2} | d{2} | d{2} | }
+      \hline
+
+      & &
+      \multicolumn{3}{| l |}{\textbf{Ascomycota}} &
+      \multicolumn{3}{| l |}{\textbf{Basidiomycota}} \\
+
+      \hline
+
+      & &
+      \multicolumn{1}{| l |}{\textbf{SVM}} &
+      \multicolumn{1}{| l |}{\textbf{NN\,100}} &
+      \multicolumn{1}{| l |}{\textbf{NN\,400}} &
+      \multicolumn{1}{| l |}{\textbf{SVM}} &
+      \multicolumn{1}{| l |}{\textbf{NN\,100}} &
+      \multicolumn{1}{| l |}{\textbf{NN\,400}} \\
+
+      \hline
+
+      \multirow{2}{*}{\textbf{Donor}}
+      & $\mathit{TPR}$ & 86.6\% & 84.9\% & 87.2\% & 91.6\% & 86.3\% & 89.9\% \\
+      & $\mathit{TNR}$ & 94.9\% & 97.2\% & 97.7\% & 95.9\% & 97.6\% & 98.1\% \\
+
+      \hline
+
+      \multirow{2}{*}{\textbf{Acceptor}}
+      & $\mathit{TPR}$ & 83.4\% & 85.3\% & 86.4\% & 88.1\% & 87.7\% & 88.8\% \\
+      & $\mathit{TNR}$ & 93.8\% & 97.7\% & 97.9\% & 93.8\% & 97.8\% & 97.7\% \\
+
+      \hline
+    \end{tabular}
+  \end{center}
+  \caption{\label{table:evaluation:comp-svm}Comparison of true positive rate
+    ($\mathit{TPR}$) and true negative rate ($\mathit{TNR}$) between SVM,
+    neural network with window size 100 (NN\,100) and neural network with
+    window size 400 (NN\,400).}
+\end{table}
+
+\section{\label{ch:evaluation:cpu}Computational Intensity}
+
+The NN\,400 model uses $2.88\times$ more CPU time per inference than the
+NN\,100 model. The SVM uses $46.4\times$ more CPU time per inference than the
+NN\,100 model. This makes the use of the neural networks more practical on
+large metagenomes.
+
+The NN\,100 model uses 1.37 CPU seconds per 1000 predictions, while the NN\,400
+model uses 3.94 CPU seconds per 1000 predictions. The measurement was performed
+on the laptop ThinkPad T490 with Intel\textsuperscript{\tiny\textregistered}
+Core™ i5-8265U CPU @ 1.60GHz. The measurement was performed with all samples
+loaded in memory. TensorFlow version 2.3.1 compiled with instructions
+\Verb_AVX2_ and \Verb_FMA_ enabled was used. The measurement included only the
+CPU time usage of Python call \Verb_model.predict(inputs)_.
+
+There is around $10^8$ donor and acceptor candidate splice sites in a
+metagenome of size of $10^9$ nucleotides. Using the NN\,100 model, all
+candidate splice sites in this hypothetical dataset could be classified in
+137\,000 CPU seconds or 9.5 hours on four CPU cores. Both CPU and real time
+would be much smaller on a server CPU, GPU or TPU.
+
+One hour of a single CPU on an E2 machine type in Google Cloud Platform costs
+0.021811\,USD \cite{gcp-pricing}. Using this price and ignoring the differences
+between CPUs, any inefficiencies, or overhead, all introns in the
+aforementioned hypothetical metagenome could be classified for 0.83\,USD.
+
+\section{\label{ch:evaluation:sensitivity}Positional Sensitivity}
+
+Figure \ref{fig:evaluation:donor-divergence-all} visualizes an estimation of
+the Kullback–Leibler divergence between the distributions of donor model
+inferences made on unmodified sequences and sequences with single nucleotide
+symbol swaps.
+
+\begin{figure}
+  \centering
+  \includegraphics[width=0.8\textwidth]{figures/donor_evaluation/divergence-all.pdf}
+  \caption{Kullback–Leibler divergences between NN\,400 donor model inferences
+    on unmodified input sequences and inferences on sequences with single
+    nucleotide modifications at various positions. Position-wise maximum over
+    swaps to adenine, thymine, cytosine, adenine are shown.}
+  \label{fig:evaluation:donor-divergence-all}
+\end{figure}
+
+The figure illustrates that the network is highly sensitive in the close
+vicinity of the splice site with decreasing sensitivity in the downstream
+(intron) direction. Almost no sensitivity could be found to one nucleotide
+swaps 9 nucleotides and further upstream from the splice site. Part of this
+sensitivity spike around the splice site is consistent with the literature
+which reports that the 5\textquotesingle{}-terminus of the U1 snRNA component
+of spliceosome binds to the nearly perfect Watson-Crick complement sequence
+\Verb_CAGGURAGU_ that spans -3 to +6 around 5\textquotesingle{}-end of an
+intron \cite{de2013exon}.
+
+The second peak of sensitivity is found around 40 nucleotides downstream from
+the splice site. There is a high frequency of introns of a length between 40
+and 75 nucleotides, see Figure \ref{fig:data:intron-len-dist}. The branch point
+is located 18 to 40 nucleotides upstream from the acceptor splice site
+\cite{clancy2008rna}. The relative location of the second peak likely implies
+that the network is learned to recognize area around branch point. This is
+further supported by Figure \ref{fig:evaluation:donor-divergence-60}, where
+positive samples were limited to the splice sites of introns of a length of 60
+nucleotides. Figure \ref{fig:evaluation:donor-divergence-60} also displays a
+sensitivity peak at the location of the acceptor splice site.
+
+\begin{figure}
+  \centering
+  \includegraphics[width=0.8\textwidth]{figures/donor_evaluation/divergence-60.pdf}
+  \caption{Kullback–Leibler divergences between NN\,400 donor model inferences
+    on unmodified input sequences and inferences on sequences with single
+    nucleotide modifications at various positions. Position-wise maximum over
+    swaps to adenine, thymine, cytosine, adenine are shown. Positive samples
+    are limited to the splice site of introns of a length 60 nucleotides.}
+  \label{fig:evaluation:donor-divergence-60}
+\end{figure}
+
+Figure \ref{fig:evaluation:acceptor-divergence-all} visualizes an estimation of
+the Kullback–Leibler divergence between the distributions of acceptor model
+inferences made on unmodified sequences and sequences with single nucleotide
+symbol swaps. Figure \ref{fig:evaluation:acceptor-divergence-60} visualizes the
+divergence on introns of a length of 60 nucleotides. The acceptor sensitivity
+plot largely overlaps with the donor sensitivity plot, with a notable
+difference of the sensitivity decreasing more steeply near the opposite splice
+site and vice versa. Compared to the donor model, the acceptor model is more
+sensitive to one nucleotide swap in the negative samples.
+
+\begin{figure}
+  \centering
+  \includegraphics[width=0.8\textwidth]{figures/acceptor_evaluation/divergence-all.pdf}
+  \caption{Kullback–Leibler divergences between NN\,400 acceptor model
+    inferences on unmodified input sequences and inferences on sequences with
+    single nucleotide modifications at various positions. Position-wise maximum
+    over swaps to adenine, thymine, cytosine, adenine are shown.}
+  \label{fig:evaluation:acceptor-divergence-all}
+\end{figure}
+
+\begin{figure}
+  \centering
+  \includegraphics[width=0.8\textwidth]{figures/acceptor_evaluation/divergence-60.pdf}
+  \caption{Kullback–Leibler divergences between NN\,400 acceptor model
+    inferences on unmodified input sequences and inferences on sequences with
+    single nucleotide modifications at various positions. Position-wise maximum
+    over swaps to adenine, thymine, cytosine, adenine are shown. Positive
+    samples are limited to the splice site of introns of a length of 60
+    nucleotides.}
+  \label{fig:evaluation:acceptor-divergence-60}
+\end{figure}
+
+A similar analysis based on different techniques was done in
+\cite{zuallaert2018splicerover} which used a CNN trained and evaluated on
+Arabidopsis and human. Visualizations reported in that paper, however, differ
+with the results reported in this section, especially in the areas more than 10
+nucleotides distant from the splice sites.
+
+Kullback–Leibler divergence estimation is calculated with Formula
+\ref{ch:evaluation:divergence} on two $n$-tuples of samples i.i.d. drawn from
+distributions $p$ and $q$ respectively. $\nu_k(i)$ is distance of the $i$-th
+sample from the first $n$-tuple to the $k$-th nearest neighbor from the second
+$n$-tuple; $\rho_k(i)$ is distance of the $i$-th sample from the first
+$n$-tuple to the $k + 1$ nearest neighbor from the same $n$-tuple. This
+equation was derived from \cite{wang2006nearest}, $n = 1000$ and $k = 10$ were
+used.
+
+\begin{equation}
+  D_{n}(p \parallel q) = \frac{1}{n} \sum_{i = 1}^n log
+  \frac{\nu_k(i)}{\rho_k(i)} + \log \frac{n}{n - 1}
+  \label{ch:evaluation:divergence}
+\end{equation}
+
+\section{\label{ch:evaluation:proximity}False Positives in the Proximity to a Splice Site}
+
+Figure \ref{fig:evaluation:donor-splice-site-dist-wide} shows the dependence of
+the donor model performance on negative splice site examples to the distance to
+the closest real donor splice site. Figure
+\ref{fig:evaluation:donor-splice-site-dist-narrow} displays this dependence
+only in a narrow neighborhood of true splice sites.
+
+The plots display the mean predicted value and the false positive rate for each
+distance bin. The mean predicted value is equal to the mean prediction error
+because only negative samples are used. The measurements are done on bins of
+size 5 in Figure \ref{fig:evaluation:donor-splice-site-dist-wide} and on bins
+of size 3 in Figure \ref{fig:evaluation:donor-splice-site-dist-narrow}. The
+figures differ due to the overall captured distance range and different bin
+sizes.
+
+This data was generated on the validation dataset because there were not enough
+samples in the test dataset to calculate the unbiased report without too much
+noise. Only splice sites with consensus dinucleotides were included among the
+negative samples. However, the closest true splice site was selected from the
+set of all splice sites.
+
+\begin{figure}
+  \centering
+  \includegraphics[width=0.8\textwidth]{figures/donor_evaluation/splice-site-dist-wide.pdf}
+  \caption{NN\,400 donor model error rate dependence on the relative position
+    of the nearest true donor splice site.}
+  \label{fig:evaluation:donor-splice-site-dist-wide}
+\end{figure}
+
+\begin{figure}
+  \centering
+  \includegraphics[width=0.8\textwidth]{figures/donor_evaluation/splice-site-dist-narrow.pdf}
+  \caption{NN\,400 donor model error rate dependence on relative position of
+    the nearest true donor splice site.}
+  \label{fig:evaluation:donor-splice-site-dist-narrow}
+\end{figure}
+
+Figure \ref{fig:evaluation:acceptor-splice-site-dist-wide} and Figure
+\ref{fig:evaluation:acceptor-splice-site-dist-narrow} visualize the same
+dependency for the acceptor splice site model. An interesting difference from
+the donor model is that the error spike around the true splice site is higher
+and wider.
+
+\begin{figure}
+  \centering
+  \includegraphics[width=0.8\textwidth]{figures/acceptor_evaluation/splice-site-dist-wide.pdf}
+  \caption{NN\,400 acceptor model error rate dependence on the relative
+    position of the nearest true donor splice site.}
+  \label{fig:evaluation:acceptor-splice-site-dist-wide}
+\end{figure}
+
+\begin{figure}
+  \centering
+  \includegraphics[width=0.8\textwidth]{figures/acceptor_evaluation/splice-site-dist-narrow.pdf}
+  \caption{NN\,400 acceptor model error rate dependence on the relative
+    position of the nearest true donor splice site.}
+  \label{fig:evaluation:acceptor-splice-site-dist-narrow}
+\end{figure}
+
+The error spike around true splice sites leads to the higher than uniform
+presence of false intron detections with an almost perfect overlap with the
+true introns compared to introns with a low overlap with the true introns.
+
+After the detected splice sites are combined into whole introns, among the
+overlapping intron detections only those detected with the largest splice site
+prediction values are kept. It is expected that this would lead to the
+selection of the true introns in the majority of the cases.
+
+Likewise, a small negative effect on gene prediction from incorrect intron
+detections which large relative overlap with the true introns is expected.
+
+\section{\label{ch:evaluation:lengths}Introns of Various Lengths}
+
+Figure \ref{fig:evaluation:donor-intron-length-error} and Figure
+\ref{fig:evaluation:acceptor-intron-length-error} show the dependency of the
+error rates of donor and acceptor models, respectively, on the splice sites
+associated with introns of various lengths. The figures demonstrate that the
+models are systematically not recognizing the splice sites of introns shorter
+than 40 nucleotides. The error rate is the smallest in the area around 55
+nucleotides and goes up for splice sites of longer introns. Low performance on
+short introns is more pronounced in the acceptor model.
+
+The effect could be, in part, explained by the distribution of intron lengths
+in the data, see Figure \ref{fig:data:intron-len-dist}. Training samples of the
+models were randomly drawn from the dataset of training organisms. Therefore,
+the lengths of most of the introns associated with the positive splice sites
+the model ``saw'' during training were concentrated around 55 nucleotides.
+
+Introns having lengths shorter than 30 nucleotides are extremely rare in the
+gene databases across all eukaryotic organisms
+\cite{piovesan2015identification}. Their existence in the data might be a
+result of incorrect annotation, and it is hypothesized that they do not exist
+in nature due to the minimum sequence elements needed for their splicing
+\cite{piovesan2015identification}. Introns shorter than 30 nucleotides are
+rare, but they are present in the data used in this work. In light of this, the
+high error rate on the splice sites of very short introns could be caused by
+data quality.
+
+\begin{figure}
+  \centering
+  \includegraphics[width=0.8\textwidth]{figures/donor_evaluation/intron-lenght-error.pdf}
+  \caption{Dependence of the NN\,400 donor model error rate on positive splice
+    site samples and the lengths of associated introns.}
+  \label{fig:evaluation:donor-intron-length-error}
+\end{figure}
+
+\begin{figure}
+  \centering
+  \includegraphics[width=0.8\textwidth]{figures/acceptor_evaluation/intron-lenght-error.pdf}
+  \caption{Dependence of NN\,400 acceptor model error rate on positive splice
+    site samples and lengths of associated introns.}
+  \label{fig:evaluation:acceptor-intron-length-error}
+\end{figure}
+
+\section{\label{ch:evaluation:correlation}Donor and Acceptor Model Correlation}
+
+Figure \ref{fig:evaluation:donor-acceptor-dependency} depicts the output
+dependency of the donor splice site model and the acceptor splice site model
+when predictions are performed on the (opposite) splice sites of the same
+intron. Per organisms correlations of the outputs are given in Table
+\ref{table::evaluation:donor-acceptor-dependency}.
+
+The correlation is negative only for Rozal\_SC1 and Enche1; it is larger than
+$0.6$ for all other test organisms. This might be related to the fact that the
+performance on the organisms Rozal\_SC1 and Enche1 is lower by a big margin
+compared to all the other test organisms, see Table
+\ref{table:evaluation:donor} and Table \ref{table:evaluation:acceptor}.
+
+\begin{table}
+  \begin{center}
+    \begin{tabular}{ | l | d{2} | }
+      \hline
+
+      \multicolumn{1}{| l |}{\textbf{Organism ID}} &
+      \multicolumn{1}{| l |}{\textbf{Correlation}} \\
+
+      \hline
+      Aspwe1 & 0.69 \\
+      Mycalb1 & 0.63 \\
+      Allma1 & 0.73 \\
+      Chytri1 & 0.65 \\
+      Rozal\_SC1 & -0.05 \\
+      Enche1 & -0.13 \\
+      Liccor1 & 0.64 \\
+      Coere1 & 0.66 \\
+      \hline
+    \end{tabular}
+  \end{center}
+  \caption{\label{table::evaluation:donor-acceptor-dependency}The Pearson
+    correlation coefficient of NN\,400 donor and NN\,400 acceptor model outputs
+    on the splice sites of the same intron.}
+\end{table}
+
+\begin{figure}
+  \centering
+  \includegraphics[width=0.8\textwidth]{figures/donor-acceptor-dependency.pdf}
+  \caption{Dependency of NN\,400 donor and NN\,400 acceptor model outputs on
+    the splice sites of the same intron.}
+  \label{fig:evaluation:donor-acceptor-dependency}
+\end{figure}
+
+The data illustrates that an intron with a ``hard-to-recognize'' splice site is
+of diminished ``visibility'' even for the model of the opposite splice site. In
+Section \ref{ch:evaluation:sensitivity}, it is demonstrated that both the donor
+splice site model and the acceptor splice site model are sensitive in the
+region of the opposite splice site---this likely explains the correlations.
+
+If donor and acceptor models were independent, the probability of the detection
+of an intron would be a multiplication of the probabilities of its splice sites
+being detected (independently). With strong correlation of donor and acceptor
+model outputs, the overall likelihood of the detection of a true intron is much
+higher. This is shown by Table \ref{table::evaluation:both-splice-sites} that
+gives a percentage of introns with both splice sites detected by the real
+models and by hypothetical statistically independent models.
+
+\begin{table}
+  \begin{center}
+    \begin{tabular}{ | l | d{2} | d{2} | }
+      \hline
+
+      \multicolumn{1}{| l |}{\textbf{Organism ID}} &
+      \multicolumn{1}{| l |}{\textbf{Detected Introns}} &
+      \multicolumn{1}{| l |}{\textbf{Multiplication}} \\
+
+      \hline
+      Aspwe1     & 91.6\% & 88.0\% \\
+      Mycalb1    & 72.8\% & 65.2\% \\
+      Allma1     & 78.0\% & 69.8\% \\
+      Chytri1    & 79.2\% & 72.7\% \\
+      Rozal\_SC1 & 12.5\% & 13.6\% \\
+      Enche1     & 42.1\% & 42.1\% \\
+      Liccor1    & 92.0\% & 89.2\% \\
+      Coere1     & 51.1\% & 37.2\% \\
+      \hline
+    \end{tabular}
+  \end{center}
+  \caption{\label{table::evaluation:both-splice-sites}The percentage of introns
+    whose splice sites were recognized by both the NN\,400 donor model and the
+    NN\,400 acceptor model and the percentage of detected introns, if the
+    models were statistically independent but with the same true positive
+    rate.}
+\end{table}
+
+\section{\label{ch:evaluation:whole}Whole Gene Prediction Pipeline}
+
+As discussed in Chapter \ref{ch:intro} and Chapter \ref{ch:motivation}, the
+primary purpose of splice site detection models and their combination to the
+full intron detection pipeline is to improve the performance of a larger gene
+prediction pipeline, which is utilized to detect gene homologies in novel and
+known fungal DNA sequences in metagenomes.
+
+Utilization of the intron detection pipeline based on SVM, as developed in
+\cite{barucic}, has significantly improved the gene prediction by increasing
+the number of discovered gene homologies when the gene prediction pipeline was
+executed separately with and without the intron detection.
+
+Based on the results with SVM models and better performance of the neural
+networks compared to SVM, it is expected that the gene prediction will further
+benefit with the introduction of the neural network-based intron detection
+pipeline.

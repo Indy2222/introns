@@ -1,0 +1,183 @@
+\chapter{\label{ch:automation}Automation}
+
+\minitoc
+
+This chapter describes various automation software developed as part of this
+work, including data pre-processing and extraction, neural network training,
+and evaluation. It explains how the work was split into a multi-step pipeline
+and further describes some technical details that have implications on how the
+neural networks were trained or evaluated.
+
+Source data, as described in Chapter \ref{ch:data}, contains assembled DNA
+sequence scaffolds in FASTA files and various feature annotations in general
+feature format (GFF) files. A multistep data pre-processing pipeline was
+created to extract target training, evaluation, and testing data from the
+source data. This pipeline is split into multiple steps to reduce its
+complexity, increase the time-efficiency, and to enable efficient
+reproducibility with varying configuration parameters like extracted window
+size. A set of fully automated training, evaluation, inspection, and
+visualization scripts were also created.
+
+Throughout the work, 0-based indexing is used for sequence positions and start
+inclusive, end exclusive intervals are used.
+
+All source codes are published in GitHub repository
+\url{https://github.com/Indy2222/introns/}. Source data, trained neural
+networks, and other large binary materials are uploaded to Google Cloud Storage
+which is linked from the repository.
+
+\section{\label{ch:automation:overview}Overview}
+
+In the text of this chapter, in the source code and in file naming the term
+``gene'' is often used for a continuous area withing a DNA sequence that spans
+from the beginning of the first annotated CDS to the end of the last annotated
+CDS of an actual gene. This is a simplification that does not fully correspond
+to actual genes in all their complexities as understood by biology.
+
+The pre-processing pipeline consists of the following steps:
+
+\begin{enumerate}
+  \item Within each organism, start and end positions of individual genes and
+    introns are extracted. These are collectively referred to as feature, see
+    Section \ref{ch:automation:features}.
+  \item Positions of positive and negative examples of donor and acceptor
+    Splice sites are generated. See Section \ref{ch:automation:positions}.
+  \item Final data samples, which map DNA sequence windows to scores $0.0$ or
+    $1.0$, are created. See Section \ref{ch:automation:samples}.
+\end{enumerate}
+
+The data pre-processing pipeline is implemented in the Rust programming
+language for its high performance, reliability, and ``fearless concurrency''
+\cite{matsakis2014rust}\cite{rust-web}. All CPU-intensive parts of the pipeline
+are parallelized to improve the processing time on multicore computers.
+
+Training, evaluation, inspection, and visualization are described in Section
+\ref{ch:automation:evaluation}.
+
+Diagram of the preprocessing, training and evaluation pipeline is depicted in
+Figure \ref{fig:automation:pipeline}.
+
+\begin{figure}
+  \centering
+  \includegraphics[width=\textwidth,height=0.9\textheight]{figures/pipeline.pdf}
+  \caption{Diagram of data extraction and preprocessing, splice site
+    classification model training and evaluation.}
+  \label{fig:automation:pipeline}
+\end{figure}
+
+\section{\label{ch:automation:features}Intron and Gene Extraction}
+
+Start and end positions of individual protein coding genes and introns are
+extracted from the source GFF files by iterating over a sorted list of all
+annotated coding sequences (CDS). Each CDS has a protein ID attribute, a start
+position, an end position, and a scaffold name. Gene boundaries are obtained
+from the start position of its first CDS and the end position of its last CDS.
+All gaps within the gene not covered by any of its CDS are considered and
+stored as intros. See Figure \ref{fig:automation:color-coded} illustrating
+extracted and non-extracted introns.
+
+\begin{figure}
+\centering
+\begin{BVerbatim}[commandchars=\\\{\}]
+AGT\textcolor{cyan}{ATCATGA}\textcolor{magenta}{AGGAA}\textcolor{cyan}{GAACA}\textcolor{blue}{AGTTGA}\textcolor{red}{GTGACATAATTACCAG}\textcolor{blue}{GGGT}\textcolor{cyan}{GCG}GCG
+\end{BVerbatim}
+\caption{An illustration of a DNA sequence with UTR of exons highlighted in
+  \textcolor{cyan}{cyan}, CDS highlighted in \textcolor{blue}{blue}, intra-UTR
+  introns (not extracted) highlighted in \textcolor{magenta}{magenta} and
+  intra-CDS introns (extracted) highlighted in \textcolor{red}{red}.}
+\label{fig:automation:color-coded}
+\end{figure}
+
+CDS makes a subset of exons but not vice versa, as exons close to both the
+5\textquotesingle{} and 3\textquotesingle{} sites of a gene contain UTR and may
+contain only UTR \cite{bicknell2012introns}. The use of CDS for intron
+detection implies that only intra-CDS introns are extracted.
+
+Only genes and introns on the positive strand were considered in the data
+extraction pipeline and data analysis. This simplifies the pipeline but reduces
+the amount of extracted data into half. The smaller dataset without reduction
+of variability in the data does not have any impact on the results due to the
+large size of the dataset. See Section \ref{ch:data:stats} with dataset
+statistics.
+
+Gene direction is close to random in fungal DNA \cite{li2012gene}, and it is
+further supposed that intron-specific differences between two DNA strands are
+weak or non-existent. This possible effect on the data is further weakened by
+the non-systematic selection of strands during DNA sequencing. However, some of
+these assumptions deserve a deeper analysis.
+
+A CSV file with genes and introns is produced for each organism. Each gene and
+intron has an ID and a parent ID---this allow detailed analysis at later
+stages.
+
+\section{\label{ch:automation:positions}Candidate Splice Site Extraction}
+
+Positions of all candidate splice sites within genes ,as described by Section
+\ref{ch:automation:features}, are detected. Candidate splice sites are divided
+into donors and acceptors; they are further divided into positive
+examples---i.e. where true splice sites are located---and negative examples.
+Not all candidate splice sites are included, see Section
+\ref{ch:rcnn:candidates}. The intersecting areas of overlapping genes are
+processed only once to avoid the duplication of candidate splice site
+positions. Splice sites from all genes are considered within these areas.
+
+Consensus dinucleotide, which does coincide with a respective splice site of an
+intron of any gene, is not included in the set of negative splice site samples
+even if it is included in another overlapping gene at a non-splice site
+position. This prevents inconsistent labeling of training data in cases of
+alternative splicing and overlapping genes.
+
+Four Numpy NPZ files are generated for each organism:
+
+\begin{itemize}
+  \item positive donor positions,
+  \item positive acceptor positions,
+  \item negative donor positions,
+  \item negative acceptor positions.
+\end{itemize}
+
+Each of these NPZ files maps the scaffold name to a list of 0-indexed positions
+and feature IDs.
+
+\section{\label{ch:automation:samples}Training Samples Extraction}
+
+Candidate splice site positions, as described in Section
+\ref{ch:automation:positions}, are used for the extraction of actual training,
+validation, and testing data. The generation of samples is the first step in
+the pre-processing pipeline which includes some kind of sub-sampling (i.e. no
+positions are skipped by the previous pipeline steps). The intermediate data is
+utilized to avoid the scanning of large amounts of source files with DNA
+sequences and annotations when regenerating training data on various filtering,
+sampling, and windowing criteria.
+
+Sample window size, i.e. the number of nucleotides in it, splice site relative
+offset, the maximum number of examples, and other criteria are all
+configurable. Stratified sampling is done on groups defined by organism, splice
+site type, and true/false positivity to avoid any over-representation of
+organisms. Under this constraint, examples were selected stochastically.
+
+The samples are stored in numbered sub-sub directories as NPZ files map the
+encoded input sequences to labels. This nested structure is used to obtain good
+performance on some Linux file systems as the performance on large directories
+might be very low \cite{djordjevic2012ext4}. A CSV index file, coupling the
+file paths with sample types and other properties, is created for quick access
+and further sub-sampling for experiments that do not require a large amount of
+data.
+
+\section{\label{ch:automation:evaluation}Training and Evaluation}
+
+There is a script for automatic neural network training, other script for
+generation and persistence of training-validation-test data split with various
+other dataset configurations.
+
+A program which automatically evaluates a trained neural network on validation
+and test datasets was created to allow fast experimentation and comparability
+among experiments. A PDF with various network performance metrics on whole
+datasets as well as on individual organisms is produced by the program. This
+program is extended with more programs that do more detailed inspections,
+evaluations, and visualization---for example, the analysis of sensitivity of
+the networks to one nucleotide mutations.
+
+Training, evaluation, and other related automation are implemented in Python
+for its ease of use, widespread usage among scientists, and abundance of
+relevant deep learning, statistical and data science libraries.

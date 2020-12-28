@@ -1,0 +1,409 @@
+\chapter{\label{ch:rcnn}Recurrent Convolutional Neural Networks}
+
+\minitoc
+
+This work aims to develop a method based on deep neural networks which would
+detect and remove introns from the DNA sequences of various fungal organisms.
+
+Removal of introns is done in these steps:
+
+\begin{enumerate}
+  \item all candidate donor and acceptor splice sites are identified based on
+    consensus dinucleotides,
+  \item these candidate splice sites are classified as true and false splice
+    sites with separate donor and acceptor recurrent neural networks,
+  \item positive classifications are combined to form candidate introns,
+  \item candidate introns are assigned a score equal to the multiple of the
+    respective donor and acceptor splice site model confidence,
+  \item and overlapping candidate introns with non-highest score are filtered
+    out.
+\end{enumerate}
+
+Section \ref{ch:rcnn:overview} gives an overview of the neural networks used
+and the overall pipeline. Section \ref{ch:rcnn:candidates} talks about the
+selection of candidate splice sites---i.e. locations in source DNA sequences
+(from a metagenome) which are considered as potential donors and acceptors.
+These locations are then classified with the splice site networks. Section
+\ref{ch:rcnn:encoding} describes how the DNA sequences are encoded in matrices
+so that they could be used as inputs to the neural networks. Section
+\ref{ch:rcnn:architecture} talks about the architecture and other aspects of
+the splice site classification neural network. Section \ref{ch:rcnn:criteria}
+defines the criteria used during network selection. Finally, Section
+\ref{ch:rcnn:splice-site-training} describes the training of the neural
+networks.
+
+\section{\label{ch:rcnn:overview}Overview}
+
+All critical sections in the aforementioned intron detection and deletion of
+the pipeline---i.e. two neural networks---are created as part of this work. An
+existing pipeline from work \cite{barucic} (which originally used the support
+vector machines in the critical section) was adapted to obtain a complete
+pipeline.
+
+Two separately trained neural networks with equal architecture were used for
+the classification of donor and acceptor splice sites within original DNA
+sequences (i.e. in full DNA sequence and before transcription to RNA). To
+accompany the complexity of all regulatory and other sequences involved in
+intron splicing, convolutional layers were utilized in target neural networks.
+Recurrent layers with long short-term memory (LSMT) units were used to enable
+the detection of partially shift invariant inter-dependencies and redundancies
+between non-adjacent parts of the intron sequences.
+
+The neural networks were trained to distinguish between true and false splice
+sites. The input to the neural network is a window spanning some distance to
+both sides around the candidate splice site. The window size has been selected
+to be large enough so that the network can detect all important features within
+the DNA sequence. The output of the network is the confidence of the input
+sample being a true splice site.
+
+The pipeline reported in \cite{barucic} requires a third model which further
+filters candidate introns. The need for this additional step was motivated by
+the high false positive rate of splice site classification models. In this
+work, the additional filtering step was assessed as counterproductive because
+splice site classification models based on neural networks have a smaller false
+positive rate and further filtering of introns would impact the overall intron
+recall. See Section \ref{ch:evaluation:comparison} for evaluation metrics.
+
+\section{\label{ch:rcnn:candidates}Candidate Splice Site Selection}
+
+Only splice sites with the consensus dinucleotides were used during the
+training, evaluation, and testing of the networks. These are \Verb_GT_ for
+donor and \Verb_AG_ for acceptor splice sites. This decision was made because
+non-consensus splice sites are rare, and therefore, there was not enough
+training and evaluation data to be included. In fact, its inclusion would
+drastically increase the number of false positive classifications. It omission
+has only a minuscule negative effect on the number of false negative
+classifications. See Section \ref{ch:data:stats} which contains more related
+statistics.
+
+False splice sites included in training, validation, and test datasets are
+selected only from the gene areas in source DNA sequences. See Section
+\ref{ch:automation:overview} for the definition of ``gene'' used in this
+thesis. Filtering to genes is motivated by the fact that intra-genetic DNA does
+not play an important role during sequence alignment and homologous gene search
+in the larger gene prediction pipeline. Therefore, removal of presumed introns
+from these intra-genetic areas should not have a large impact on overall
+results. Only the ability to recognize false splice site within genetic areas
+was assumed to play an important role. Furthermore, sequences which would be
+biologically processed as introns might be present in intra-genetic areas and
+are therefore labeled as negative examples. This would lead to confusion of the
+trained network as well as a worse performance.
+
+\section{\label{ch:rcnn:encoding}Sequence Encoding}
+
+Splice site classification neural networks were trained to map an input
+sequence window to a value between 0 and 1. The sequence is encoded as a matrix
+of dimensions $N \times 5$, where the $N$ rows represent relative positions
+along the DNA sequence and the columns represent one-hot-encoded nucleotides.
+Various input window sizes $N = N_{upstream} + N_{downstream}$ were evaluated,
+see Table \ref{table:rcnn:win-size-donor} and Table
+\ref{table:rcnn:win-size-acceptor}. Each nucleotide is encoded as a
+5-dimensional vector, with value $1.0$ at the dimension of the represented
+nucleotide and values $0.0$ at other dimensions. The first four dimensions
+represent the nucleotides adenine (A), thymine (T), cytosine (C), and guanine
+(G). The fifth dimension represents ``any symbol'' (usually missing or corrupt
+data).
+
+\begin{equation}\label{ch:rcnn:ex-donor}
+  \begin{bmatrix}
+    1 & 0 & 0 & 0 & 0 \\  % A
+    0 & 0 & 0 & 1 & 0 \\  % G
+    0 & 1 & 0 & 0 & 0 \\  % T
+    0 & 0 & 0 & 0 & 1 \\ % N
+    1 & 0 & 0 & 0 & 0 \\ % A
+    1 & 0 & 0 & 0 & 0  % A
+  \end{bmatrix}
+\end{equation}
+
+Matrix \ref{ch:rcnn:ex-donor} illustrates a six-nucleotide long,
+one-hot-encoded DNA sequence window that reads AGTNAA, which contains the
+consensus donor dinucleotide GT at position 1.
+
+\section{\label{ch:rcnn:architecture}Neural Network Architecture}
+
+This section reports selected splice site classification network architecture,
+see Figure \ref{fig:rcnn:architecture} and explains the theoretical background
+and motivation behind the input and each selected layer, as well as the
+empirical findings.
+
+\begin{figure}
+  \centering
+  \includegraphics[width=\textwidth,height=0.9\textheight]{figures/architecture.pdf}
+  \caption{Model architecture visualization}
+  \label{fig:rcnn:architecture}
+\end{figure}
+
+Table \ref{table:rcnn:win-size-donor} and Table
+\ref{table:rcnn:win-size-acceptor} show the dependency between the shape of the
+input window to the neural network and its performance. The tables clearly
+demonstrate that the window overlap with the associated intron -- located at
+the downstream direction for donors and upstream direction for acceptors --
+plays a dominant role and that classifications performed on windows with no
+overlap with the associated intron have very poor performance. This finding is
+in agreement with the biological understanding of splicing, which is mostly
+dependent on DNA sequences inside the intron. See Section
+\ref{ch:background:dna-rna} which covers the biological background and Section
+\ref{ch:evaluation:sensitivity} which explores the sensitivity of the trained
+network at various input positions.
+
+\begin{table}
+  \begin{center}
+    \begin{tabular}{ | l | d{2} | d{2} | d{2} | d{2} | d{2} | d{2} | }
+      \hline
+
+      &
+      \multicolumn{2}{| l |}{\textbf{0}} &
+      \multicolumn{2}{| l |}{\textbf{100}} &
+      \multicolumn{2}{| l |}{\textbf{200}} \\
+
+      \hline
+
+      &
+      \multicolumn{1}{| l |}{\textbf{Precision}} &
+      \multicolumn{1}{| l |}{\textbf{Recall}} &
+      \multicolumn{1}{| l |}{\textbf{Precision}} &
+      \multicolumn{1}{| l |}{\textbf{Recall}} &
+      \multicolumn{1}{| l |}{\textbf{Precision}} &
+      \multicolumn{1}{| l |}{\textbf{Recall}} \\
+
+      \hline
+      \textbf{0} & \multicolumn{1}{| c |}{-} & \multicolumn{1}{| c |}{-} & 51.8\% & 85.2\% & 52.2\% & 85.4\% \\
+      \hline
+      \textbf{100} & 14.3\% & 32.2\% & 62.4\% & 87.8\% & 63.3\% & 88.0\% \\
+      \hline
+      \textbf{200} & 14.6\% & 34.0\% & 63.6\% & 88.1\% & 64.6\% & 87.9\% \\
+      \hline
+    \end{tabular}
+  \end{center}
+  \caption{\label{table:rcnn:win-size-donor}Dependency between classification
+    performance on donors and the number of nucleotides upstream (rows) and
+    downstream (columns) from the candidate splice site included in the input
+    window.}
+\end{table}
+
+\begin{table}
+  \begin{center}
+    \begin{tabular}{ | l | d{2} | d{2} | d{2} | d{2} | d{2} | d{2} | }
+      \hline
+
+      &
+      \multicolumn{2}{| l |}{\textbf{0}} &
+      \multicolumn{2}{| l |}{\textbf{100}} &
+      \multicolumn{2}{| l |}{\textbf{200}} \\
+
+      \hline
+
+      &
+      \multicolumn{1}{| l |}{\textbf{Precision}} &
+      \multicolumn{1}{| l |}{\textbf{Recall}} &
+      \multicolumn{1}{| l |}{\textbf{Precision}} &
+      \multicolumn{1}{| l |}{\textbf{Recall}} &
+      \multicolumn{1}{| l |}{\textbf{Precision}} &
+      \multicolumn{1}{| l |}{\textbf{Recall}} \\
+
+      \hline
+      \textbf{0} & \multicolumn{1}{| c |}{-} & \multicolumn{1}{| c |}{-} & 10.2\% & 22.1\% & 10.4\% & 24.3\% \\
+      \hline
+      \textbf{100} & 53.1\% & 86.3\% & 57.7\% & 87.2\% & 56.6\% & 87.2\% \\
+      \hline
+      \textbf{200} & 56.1\% & 86.4\% & 58.6\% & 87.3\% & 58.8\% & 87.4\% \\
+      \hline
+    \end{tabular}
+  \end{center}
+  \caption{\label{table:rcnn:win-size-acceptor}Dependency between
+    classification performance on acceptors and the number of nucleotides
+    upstream (rows) and downstream (columns) from the candidate splice site
+    included in the input window.}
+\end{table}
+
+The convolutional layer allows for sparse connectivity between successive
+layers and parameter sharing by applying the same kernel parameters to a
+limited receptive field \cite[p.~330]{goodfellow2016deep}. This leads to
+drastic reduction of the number of trainable parameters which, in turn,
+decreases the computing time and needed training dataset size. Convolutions are
+equivariant to translation \cite[p.~334]{goodfellow2016deep} and are therefore
+theoretically capable of learning various features at different relative
+positions inside input DNA sequence windows from fewer samples. It is
+hypothesized that such position-independent features exist in the data, which
+motivated the use of convolutional layers in the resulting network
+architecture. It has been empirically verified that convolutional layers
+improved various network performance metrics at low additional computational
+costs.
+
+Leaky rectified linear activation functions (Leaky ReLU) were used throughout
+the network. Use of the ReLU activation function and its variations has many
+benefits. ReLU was among the most frequently used and successful activation
+function as of 2017 \cite{ramachandran2017searching}; it leads to extensive
+research on them. Networks using ReLU units are more easily trained because
+they do not have problems with vanishing and exploding gradients
+\cite{ramachandran2017searching}. Leaky ReLU was used instead of plain ReLU
+because it provides similar computational complexity but avoids 0 gradient
+\cite{maas2013rectifier}, thereby leading to improved performance.
+
+Skip connections forming residential networks (ResNet) are introduced in the
+convolutional part of the network. Deep networks may suffer from the vanishing
+gradient and the degradation problem, which could be resolved by using ResNet
+\cite{he2016deep}.
+
+Recurrent neural networks (RNNs) are capable of recognizing same features at
+various positions in the input sequence and even recognize their repetition and
+mutual dependence \cite[p.~367]{goodfellow2016deep}. To some extent, it is
+possible to achieve similar position-independent feature recognition with
+convolutional layers. However, their processing is shallower and disallows
+greater interdependence between different positions in the sequence
+\cite[p.~368]{goodfellow2016deep}. As of 2016, gated RNNs, which include
+networks with long short-term memory (LSTM) units, were the most effective type
+of RNNs \cite[p.~404]{goodfellow2016deep}. LSTM units allow the retention of
+information over large number of time steps without any problems with vanishing
+or exploding gradients \cite[p.~404]{goodfellow2016deep}. Other works also
+report the successful use of RNN layers for splice site detection
+\cite{lee2015dna}. For these reasons, a bidirectional RNN layer was used in the
+selected architecture.
+
+The work \cite{lee2015dna} reports no improvement after adding more recurrent
+layers. The same finding of no statistically significant improvement after
+adding another recurrent layer was observed in this work.
+
+The used recurrent layer produces output at each step. This decision has been
+motivated by the need to distinguish true splice sites that are located exactly
+in the middle of the input sequence from those located in close proximity in
+the middle. Bidirectional RNN was used to allow the recognition of both
+downstream and upstream dependencies.
+
+The aforementioned multilayered architecture allows for the learning of
+complex, highly non-linear mappings between input DNA sequences and output
+splice site confidences. The network has 49\,921 learnable parameters, which
+give large learning capacity. However, neural networks with large capacities
+tend to overfit the training data \cite{srivastava2014dropout}. This effect was
+empirically observed and confirmed during experiments on neural network
+architectures without sufficient regularization techniques. A dropout layer was
+successfully used in the final architecture to completely overcome overfitting.
+
+Dropout is a technique of omission of a given fraction of neural units in a
+given layer during training. A different stochastic unit selection is done
+during each training mini-batch. Classical optimization based on
+backpropagation is then applied to this reduced network
+\cite{srivastava2014dropout}. All neurons are applied with a scaling factor
+during the later inference of a trained network. Dropout is an approximation of
+an equally weighted geometric mean of the predictions of multiple neural
+networks with shared parameters \cite{srivastava2014dropout}. The number of
+dropouts and therefore the number of synthetic networks are exponential with
+the number of neural units \cite{srivastava2014dropout}. This technique is
+highly efficient from the point of view of computational resources and prevents
+overfitting \cite{srivastava2014dropout}.
+
+\section{\label{ch:rcnn:criteria}Model Criteria}
+
+Model selection was based on the following criteria:
+
+\begin{itemize}
+  \item ability of the model to generalize and perform consistently among
+    different fungal organisms,
+  \item good performance metrics, namely its precision and recall,
+  \item model complexity and computational intensity during inference.
+\end{itemize}
+
+The generalization capability of the model was an important aspect because the
+model would be applied to a wide variety of previously unknown fungal genomes.
+For this reason, all experimental models were evaluated on individual organisms
+separately as well as on larger sets of organisms. Consistency was taken into
+account in this regard.
+
+Precision and recall were used to evaluate the performance of the models. Small
+false positive rate was emphasized during the development of the network
+architecture and the selection of binary classification threshold values. This
+is because consensus dinucleotides are more than an order of magnitude more
+frequent in target DNA sequences than true splice sites, see Section
+\ref{ch:data:stats} for more details.
+
+Final production computational resource utilization was also an important
+consideration during the design of the network architecture and pre-processing
+and post-processing procedures. This aspect is important because metagenomes on
+which they will be applied are enormous and might go well beyond $10^9$
+nucleotides. The possible use of the results of this work in an automated
+online annotation tool is another consideration, and high computational
+requirement would make such a goal economically unfeasible. This criterion has
+led to the selection of a sub-optimal network from the point of view of
+accuracy as networks with larger complexity and window size had slightly better
+results. But the improvement was not significant and would lead to a large
+increase in computational requirements.
+
+\section{\label{ch:rcnn:splice-site-training}Neural Network Training}
+
+Stochastic gradient descent (SGD) was used for the optimization during network
+training. Other optimization techniques, such as the adaptive methods AdaGrad,
+RMSProp, or Adam, were also tested, but SGD yielded superior results. It has
+been reported that adaptive methods converge faster during the initial phases
+of training; but given enough training time, it may lead to worse
+generalization \cite{wilson2017marginal}. This effect was empirically confirmed
+in this work.
+
+The initial learning rate was set to $\alpha = 0.01$ and multiplied by the
+factor of $0.2$ after every epoch which did not lead to a decrease in
+validation loss. The training was automatically stopped after 10 successive
+epochs with no significant decrease in validation loss. The model with the
+lowest after-epoch validation loss was used during successive evaluation and
+tests.
+
+Binary cross-entropy was chosen as a surrogate loss function.
+
+It has been reported that small batch sizes ($m \le 32$) lead to better test
+results and generalization. For some networks and tasks, this effect might go
+down to the batch size as small as $m = 2$ \cite{masters2018revisitingb}. The
+batch size of $m = 16$ was used during training.
+
+\begin{figure}
+  \centering
+  \includegraphics[width=0.8\textwidth]{figures/donor_evaluation/training-loss.pdf}
+  \caption{Training and validation loss during training of the donor model}
+  \label{fig:rcnn:training-loss}
+\end{figure}
+
+Over three million samples from 769 organisms were used in the training dataset
+and over 85\,000 samples from 85 organisms were used in the validation dataset.
+See Section \ref{ch:rcnn:dataset-size} that talks about validation dataset size
+selection. After each epoch, training samples were randomly reshuffled.
+Training and validation loss progression is illustrated by Figure
+\ref{fig:rcnn:training-loss}.
+
+Keras \cite{chollet2015keras} with TensorFlow \cite{abadi2016tensorflow}
+backend was used for training and prediction. Preprocessed data in the form of
+Numpy NPZ files with input matrices and desired outputs is used during
+training, see Section \ref{ch:automation:samples}. Data was loaded gradually
+from the disk and not kept in memory because of the large number of samples
+used during the training.
+
+See Chapter \ref{ch:evaluation} for detailed evaluation of achieved results.
+
+\section{\label{ch:rcnn:dataset-size}Dataset Size}
+
+The validation dataset always consisted of 50\% of negative samples and 50\% of
+positive samples. The validation dataset size $l$ was chosen so that the
+probability of empirical true positive rate (TPR) or empirical true negative
+rate (TNR) being more than $\epsilon$, different from the true TPR or the true
+TNR in any of $n$ experiments, was smaller or equal to $R$. See Section
+\ref{ch:background:evaluation} for more information on evaluation.
+
+Formula \ref{eq:rcnn:proba-single} gives the maximum probability $R_1$ of
+seeing a “bad” TPR or TNR measurement in a single evaluation for the above
+condition to hold. This is derived from the fact that $2 \cdot n$ measurements
+need to be performed to obtain empirical TPR and empirical TNR for $n$
+different model setups.
+
+Formula \ref{eq:rcnn:hoeffding} is derived from Hoeffding's inequality
+\cite{hoeffding1994probability} and gives the minimum dataset size $l$. The
+right part of the equation is multiplied by 2 because the dataset is split into
+half between positive and negative samples.
+
+A dataset comprising $l = 75759$ samples is needed for $n = 25$, $R = 0.05$
+(5\%) and $\epsilon = 0.01$ (1\%).
+
+\begin{equation}
+  R_1 = 1 - (1 - R)^\frac{1}{2 \cdot n}
+  \label{eq:rcnn:proba-single}
+\end{equation}
+
+\begin{equation}
+  l = \ceil*{2 \cdot \frac{\log 2 - \log R_1}{2 \cdot \epsilon^2}}
+  \label{eq:rcnn:hoeffding}
+\end{equation}

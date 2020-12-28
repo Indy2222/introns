@@ -1,0 +1,20 @@
+[package]
+name = "preprocess"
+version = "0.1.0"
+authors = ["Martin Indra <martin.indra@mgn.cz>"]
+edition = "2018"
+
+[dependencies]
+csv = "1.1"
+ncrs = "0.1"
+clap = "2.33"
+anyhow = "1.0"
+serde = { version = "1", features = ["derive"] }
+rand = "0.7"
+ndarray = "0.13"
+ndarray-npy = { version = "0.5", features = ["compressed_npz"] }
+rayon = "1.3"
+indicatif = {version = "0.14", features = ["with_rayon"]}
+zip = "0.5"
+sha3 = "0.9"
+hex = "0.4.2"

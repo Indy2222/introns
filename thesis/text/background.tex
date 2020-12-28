@@ -1,0 +1,329 @@
+\chapter{\label{ch:background}Background}
+
+\minitoc
+
+The nucleic DNA molecules or chromosomes of Eukaryotic organisms play many
+roles in cell biology. Different positions (loci) in a chromosome play
+different, often overlapping and complex, roles \cite{pennisi2007dna}. DNA
+functions and its structure are not yet fully understood
+\cite{slijepcevic2018genome}.
+
+The previously mentioned complexity opens up the possibility of novel
+approaches like state-of-the-art machine learning techniques in order to study
+the DNA structure, its roles and functions, and the detection of already known
+parts in new DNA sequences. For example, it has been shown that feed-forward
+neural networks can represent a wide variety of functions
+\cite{cybenko1989approximation}. The versatility and effectiveness of
+artificial neural networks has been practically demonstrated in many fields.
+Examples of this are general game play \cite{silver2016mastering}, face
+recognition \cite{sun2015deepid3}, speech recognition
+\cite{xiong2016achieving}, or medical image classification
+\cite{bychkov2018deep}, among others.
+
+\section{\label{ch:background:dna-rna}DNA and RNA Structure}
+
+Polynucleotide is a linear chain of up to 20 different nucleotide monomers
+joined by the phosphodiester (covalent) bond
+\cite[p.~308,p.~347]{king2006dictionary}. Deoxyribonucleic acid (DNA) and
+ribonucleic acid (RNA) are two types of polynucleotides that are abundant in
+natural life. Both have important biological functions. DNA is composed of
+individual nucleotides Adenine (A), Thymine (T), Cytosine (C), and Guanine (G)
+\cite[p.~4,~p.~20,~p.~107]{pollard2016cell}. RNA is made from nucleotides
+Adenine (A), Uracil (U), Cytosine (C), and Guanine (G)
+\cite[p.~11]{jankowski1996clinical}. RNA molecules first appeared around four
+billion years ago as a first form of life \cite[p.~412]{king2006dictionary}.
+
+The DNA molecule is directional due to asymmetry of individual nucleotides
+\cite[p.~42]{pollard2016cell}. See Figure \ref{fig:intro:nucleotide}. Based on
+The chemical convention of naming carbon atoms in the nucleotide sugar-ring,
+one side of DNA is called 5\textquotesingle{}-end and the other side
+3\textquotesingle{}-end. DNA and RNA are synthesized in the 5\textquotesingle{}
+to 3\textquotesingle{} direction \cite[p.~167,~p.~728]{pollard2016cell}. When
+referring to relative positions in a DNA sequence, upstream and downstream
+refer to the 5\textquotesingle{} and the 3\textquotesingle{} directions
+respectively. Similarly, by convention, DNA sequences are usually written and
+stored in the 5\textquotesingle{} to 3\textquotesingle{} direction, unless
+explicitly stated or needed otherwise.
+
+Chromosomes are enormous DNA molecules which encode the majority of genetic
+information in fungi and other kingdoms of species. DNA in chromosomes consists
+of two coiled chains of polynucleotide strands forming a double helix.
+
+\begin{figure}
+  \centering
+  \includegraphics[width=0.3\textwidth]{figures/nucleotide.pdf}
+  \caption{Molecular structure of a nucleotide \cite{nucleotide-img}}
+  \label{fig:intro:nucleotide}
+\end{figure}
+
+Different parts of a chromosome have different functions in a cell. Within
+chromosomes are continuous parts which form genes, which are nucleotide
+sequences that encode gene products---either RNA or protein. Genes have a
+complex structure that contains regulatory sequences, exons, introns, and other
+areas. The regulatory sequences of a gene, located at the extremities of the
+gene, contain a promoter at the 5\textquotesingle{} side and a terminator at
+the 3\textquotesingle{} side of the gene. The promoter and terminator mark the
+beginning and end of the transcribed region of the gene respectively.
+
+In eucaryotic organisms, gene transcription forms a primary transcript,
+alternatively called precursor mRNA or Pre-mRNA, which consists of exons and
+introns and lacks 5\textquotesingle{} cap and poly(A) tail. 5\textquotesingle{}
+cap and poly(A) tail are added at later stages of gene expression
+\cite{cooper2000cell}. Afterward, introns are spliced out during the
+post-transcriptional modification and the remaining exons form a final mature
+mRNA that, in some cases, encodes protein. Both ends of mRNA contain
+untranslated regions (UTR) 5\textquotesingle{}-UTR and 3\textquotesingle{}-UTR
+enclosing the final protein coding region \cite{shafee2017eukaryotic}. The gene
+structure and processing are illustrated in Figure
+\ref{fig:intro:gene-structure}.
+
+\begin{figure}
+  \centering
+  \includegraphics[width=0.9\textwidth]{figures/gene-structure.pdf}
+  \caption{Gene structure and processing \cite{shafee2017eukaryotic}}
+  \label{fig:intro:gene-structure}
+\end{figure}
+
+Within introns, the donor splice site, branch point, and the acceptor splice
+site are used for splicing. The donor splice site lies at the
+5\textquotesingle{}-end of the intron, the acceptor splice site lies at the
+3\textquotesingle{}-end of the intron, and the branch point lies 18--40
+nucleotides upstream from the acceptor site \cite{clancy2008rna}. In the great
+majority of the cases, the 5\textquotesingle{}-end of an intron starts with
+highly preserved \Verb_GU_ nucleotides and the 3\textquotesingle{}-end of an
+intron ends with \Verb_AG_ nucleotides. The highly preserved dinucleotides,
+which make first two symbols in an intron (at 5\textquotesingle{}-end) and last
+two symbols in an intron (at 3\textquotesingle{}-end), are commonly referred to
+as consensus dinucleotides. The branch point always contains adenine, but it is
+otherwise more variable \cite{clancy2008rna}. Cell's splicing machinery is
+called spliceosomes and removes introns in a sequence of complex steps. The
+exact end-to-end mechanisms are not yet fully understood \cite{clancy2008rna}.
+
+\section{\label{ch:background:alignment}Biological Sequence Alignment and Search}
+
+Sequence alignment is an algorithm which searches for the best scoring
+alignment of two or more sequences of symbols by inserting gaps into any of the
+sequences. The resulting alignment contains indels (insertions and deletions),
+mismatches, and matches. The alignments are usually scored by summing penalties
+for indels with (mis)match scores at other positions. The (mis)match scores are
+taken from a substitution matrix and the gaps are frequently scored with a
+gap-open penalty summed up with a penalty proportional to the gap length. An
+example pairwise alignment of two sequences is given in Figure
+\ref{fig:background:global-alignment}.
+
+\begin{figure}
+\centering
+\begin{BVerbatim}[baselinestretch=0.75]
+A-TATCATGA
+AGTA-CATGG
+\end{BVerbatim}
+\caption{Global sequence alignment example}
+\label{fig:background:global-alignment}
+\end{figure}
+
+Two types of alignments exist: global and local. A global alignment produces
+sequences of equal length, while a local alignment produces an alignment only
+of parts of the sequences. See Figure \ref{fig:background:local-alignment} with
+an example of a local pairwise alignment.
+
+\begin{figure}
+\centering
+\begin{BVerbatim}[baselinestretch=0.75]
+ATTATCATGA
+  TA-CA
+\end{BVerbatim}
+\caption{An example of a sequence (second row) locally aligned to a larger
+  sequence (first row)}
+\label{fig:background:local-alignment}
+\end{figure}
+
+There exist exact algorithms like the Needleman-Wunsch algorithm for global
+alignments \cite{needleman1970general} and the Smith-Waterman algorithm for
+local alignments \cite{smith1981identification}. The exact algorithms have
+large asymptotic time and memory complexity. An optimized version of the
+Needleman-Wunsch algorithm has $\mathcal{O}(mn / \log(n))$ asymptotic time
+complexity, where $m$ and $n$ are lengths of the sequences
+\cite[p.~35]{sung2009algorithms}. The asymptotic time complexity of the
+Smith-Waterman algorithm is $\mathcal{O}(mn)$ \cite[p.~40]{sung2009algorithms}.
+This makes their usage for search in large databases unfeasible because their
+asymptotic time has to be further multiplied by the number of database entries.
+
+For reasons of efficiency, heuristic sequence alignment algorithms are in wide
+use. These algorithms do not guarantee optimal results but have a much shorter
+execution time and smaller memory usage. Among the heuristic algorithms is
+BLAST (basic local alignment search tool), one of the most used algorithms for
+sequence searching \cite{casey2005blast}.
+
+E-value is the expected number of coincidental matches in the database of a
+given size with the match score equal or greater than the found score
+\cite[p.~119]{sung2009algorithms}. In other words, a large E-value signifies a
+high probability that a match is only coincidental.
+
+When searching for a sequence in a database, a local alignment, such as BLAST,
+is performed against all available sequences. All matches with a high enough
+score giving a sufficiently small E-value are reported as results.
+
+\section{Neural Networks}
+
+The artificial neural network is a network of interconnected artificial
+neurons. The activation $y_q$ (output) of a simple artificial neuron, $q$, can
+be described with Formula \ref{eq:intro:neuron-activation}, where $g:
+\mathbb{R} \rightarrow \mathbb{R}$ is the neuron activation function, $x_i$ is
+either one of the neural network inputs or the activation of the preceding
+neuron $i$, $w_{iq} \in \mathbb{R}$ is the weight of the connection from neuron
+$i$ to neuron $q$, and $b_q \in \mathbb{R}$ is the bias of neuron $q$. The
+weights and biases are learned during ANN training.
+
+\begin{equation}
+  y_q = g\left(\sum(x_i \cdot w_{iq}) - b_q\right)
+  \label{eq:intro:neuron-activation}
+\end{equation}
+
+The architecture of a neural network consists of the connections between
+individual neurons and activation functions, which are specified as
+meta-parameters \cite[p.~193]{goodfellow2016deep}. Most neural networks could
+be organized into layers. The neurons in each layer connect only to neurons
+from preceding layers \cite[p.~193]{goodfellow2016deep}.
+
+A neural network is considered deep if it consists of more than three levels of
+compositions of non-linear operations \cite[p.~6]{bengio2009learning}.
+Therefore, a neural network structured into layers is deep if it comprises more
+than one hidden layer.
+
+\begin{figure}
+  \centering
+  \includegraphics[width=0.3\textwidth]{figures/neural-network.pdf}
+  \caption{Feed forward artificial neural network \cite{feed-forward-img}}
+  \label{fig:intro:neural-network}
+\end{figure}
+
+Training algorithms, often called neural network optimizers, try to minimize
+the value of the loss function on training data. The loss function measures how
+well the network performs in each individual training sample, for example, the
+difference between truth and prediction.
+
+Neural networks are usually trained with a variation of stochastic gradient
+descent (SGD) or a derived algorithm \cite[p.~149]{goodfellow2016deep}. SGD
+repeatedly and randomly selects several training samples called a mini-batch
+and computes the loss function gradient with respect to trained parameters
+(i.e. weights and biases) with the back propagation algorithm
+\cite[p.~149]{goodfellow2016deep}. Backpropagation is an algorithm which
+computes the gradient of a loss function with respect to network parameters
+with application of the chain rule \cite[p.~201]{goodfellow2016deep}. A
+multiple, which is called the learning rate, of the calculated gradient is then
+subtracted from the parameters \cite[p.~150]{goodfellow2016deep}.
+
+A common pattern in the architecture of binary classification neural networks
+is to have a single output neuron, with an appropriate activation function and
+a discrimination threshold on output neuron activation.
+
+Convolutional neural networks (CNNs) are a class of neural networks that
+contain one or more convolution layers (see Figure \ref{fig:intro:cnn}).
+Convolution layers contain neurons with shared weights and a limited perceptive
+field; the weights of the neurons are shift invariant
+\cite[p.~326]{goodfellow2016deep}. Thanks to its features, CNNs greatly reduce
+a number of learnable parameters and are therefore easier to train and less
+prone to overfitting \cite[p.~339]{goodfellow2016deep}.
+
+\begin{figure}
+  \centering
+  \includegraphics[width=0.4\textwidth]{figures/cnn.png}
+  \caption{Convolutional layer (top) over preceding layer (bottom)
+    \cite{dumoulin2016guide}}
+  \label{fig:intro:cnn}
+\end{figure}
+
+Formula \ref{eq:intro:cnn} provides the activation of neurons in a 2D
+convolutional layer, where $y_{i, j}$ is the activation of the neuron at
+position $(i, j)$ in a 2D grid of neurons, $g: \mathbb{R} \rightarrow
+\mathbb{R}$ is the activation function, $k_{m, n} \in \mathbb{R}$ is a shared
+weight from kernel $k \in \mathbb{R}^{M \times N}$, $x_{i + m, j + n}$ is the
+output of neuron $(i + m, j + n)$ from the preceding 2D layer, and $b \in
+\mathbb{R}$ is the shared bias \cite[p.~328]{goodfellow2016deep}.
+
+\begin{equation}
+  y_{i, j} = g\left(\sum_m \sum_n k_{m, n} \cdot x_{i + m, j + n} - b\right)
+  \label{eq:intro:cnn}
+\end{equation}
+
+Recurrent neural networks (RNNs) are a family of neural networks where the
+connections between nodes form a directed graph along a sequence
+\cite[p.~368]{goodfellow2016deep}. In other words, the computational graph of
+these network contains loops that unfold over a time variable. This
+architecture allows for the processing of possibly arbitrarily long sequences
+of data \cite[p.~367]{goodfellow2016deep}.
+
+\section{\label{ch:background:evaluation}Evaluation}
+
+The four following basic metrics can be estimated for any binary classification
+algorithm with respect to truth data:
+
+\begin{itemize}
+  \item true positive rate ($\mathit{TPR}$) -- probability of a positive sample
+    being classified as positive by the classification algorithm,
+  \item true negative rate ($\mathit{TNR}$) -- probability of a negative sample
+    being classified as negative,
+  \item false positive rate ($\mathit{FPR}$) -- probability of a negative
+    sample being classified as positive,
+  \item false negative rate ($\mathit{FNR}$) -- probability of a positive
+    sample being classified as negative.
+\end{itemize}
+
+These constants are estimated with formulas $\mathit{TPR} =
+\frac{\mathit{TP}}{P}$, $\mathit{TNR} = \frac{\mathit{TN}}{N}$, $\mathit{FPR} =
+\frac{\mathit{FP}}{N}$ and $\mathit{FNR} = \frac{\mathit{FN}}{P}$, where
+$\mathit{TP}$, $\mathit{TN}$, $\mathit{FP}$, $\mathit{FN}$, $P$, and $N$ are
+the number of true positives, true negatives, false positive, false negatives,
+the number of positive samples, and the number of negative samples,
+respectively, and obtained by running the algorithm on a test dataset.
+
+Many other metrics could be derived from these constants.
+
+\subsection{Accuracy}
+
+The accuracy of an algorithm is the probability of a sample being classified
+correctly, given by Formula \ref{eq:intro:accuracy}, where $p$ is the prior
+probability of the positive class.
+
+\begin{equation}
+  \mathit{Accuracy} = \mathit{TPR} \cdot p + \mathit{TNR} \cdot (1 - p)
+  \label{eq:intro:accuracy}
+\end{equation}
+
+This metric is of limited use in case of highly unbalanced data. For example,
+an algorithm classifying all samples as negative would have 99\% accuracy on
+data with 99\% of the samples being negative.
+
+\subsection{Precision and Recall}
+
+Precision is a fraction of the true positive classifications in all positive
+classifications given by Formula \ref{eq:intro:precision}, where $p$ is the
+prior probability of the positive class.
+
+\begin{equation}
+  \mathit{Precision} = \frac{\mathit{TPR} \cdot p}{\mathit{TPR} \cdot p +
+    \mathit{FPR} \cdot (1 - p)}
+  \label{eq:intro:precision}
+\end{equation}
+
+Recall is a fraction of the positive samples classified as positive. Recall is
+independent of class prior probabilities. See Formula \ref{eq:intro:recall}.
+
+\begin{equation}
+  \mathit{Recall} = \frac{\mathit{TPR}}{\mathit{TPR} + \mathit{FNR}} =
+  \mathit{TPR}
+  \label{eq:intro:recall}
+\end{equation}
+
+Both precision and recall might be calculated directly from $\mathit{TP}$,
+$\mathit{FP}$, $\mathit{TN}$, $\mathit{FN}$ counts measured on a test dataset.
+In such a scenario, calculated precision would differ from
+\ref{eq:intro:precision} if a fraction of positive sample was different from
+positive class prior $p$.
+
+\subsection{Area Under Curve}
+
+The area under curve (AUC) is an area under a receiver characteristic curve
+(ROC). An ROC curve gives dependence of a true positive rate on the false
+positive rate obtained on the different threshold settings of a binary
+classification algorithm.

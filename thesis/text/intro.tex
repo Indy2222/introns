@@ -1,0 +1,82 @@
+\chapter{\label{ch:intro}Introduction}
+
+\minitoc
+
+The kingdom of fungi is largely undiscovered and comprises 2.2--3.8 million
+species \cite{hawksworth2017fungal}. Only a small fraction of this---around
+100\,000 species---has been described in the literature
+\cite{hawksworth2012global}. The kingdom plays a significant role in public
+health, food biosecurity, and biodiversity \cite{microbiology2017stop}. It is,
+therefore, important to develop new, computer-aided methods to bridge the gap
+between what is known and what is unknown.
+
+A gene is a sequence of DNA nucleotides encoding a gene product. A gene product
+is a protein or form of RNA. In most organisms, the DNA or RNA sequence that
+encodes the product is not continuous but interleaved with introns, which are
+spliced out during gene expression. The remaining parts are called exons
+\cite{alberts2018molecular}.
+
+Metagenomics is the study of combined genetic material as retrieved directly
+from a natural environment. The collection of genetic material retrieved from a
+sample is known as metagenome, which, as opposed to a single genome, consist of
+the DNA sequences of multiple organisms.
+
+Gene homology refers to the similarity between the genetic sequences of two
+genes due to shared ancestry. Two genes with similar DNA sequences and shared
+ancestry are called homologous. The identification of homologous genes can be
+used in recognizing individual organisms or kinships in the metagenome.
+
+In a study, forest soil samples were extracted and their genetic material
+sequenced. Traditional sequence alignment methods were utilized for gene
+prediction within the metagenome, leading to the identification of a number of
+fungal species within the sample. But the sample was significantly smaller than
+expectations based on the estimates of a number of existing fungal species. The
+present work seeks to improve the results of the gene prediction procedure. For
+this, it identifies and excises introns from the metagenome and keeps only
+evolutionarily more preserved exons in the sequences.
+
+The goal of this work is to create a multistep software pipeline that
+identifies introns in DNA sequences of potentially unknown fungal organisms.
+The use of deep neural networks is elaborated. Their performances and
+computational resource usage are compared with previously used methods based on
+support vector machines and the potential of using the results in a larger gene
+prediction pipeline.
+
+The work uses a large preexisting annotated fungal DNA dataset. The solution is
+subdivided into the following sub-goals:
+
+\begin{itemize}
+  \item detection of candidate splice site positions with the search for
+    consensus dinucleotides,
+  \item classification of candidate intron start positions, i.e. donor splice
+    sites,
+  \item classification of candidate intron end positions, i.e. acceptor splice
+    sites,
+  \item combining detected splice sites into intron start-end pairs based on
+    their mutual distance,
+  \item filtering the intron candidates resulting from the previous step by an
+    overlap-resolving algorithm.
+\end{itemize}
+
+\section{Text Structure}
+
+This chapter (\ref{ch:intro}) introduces the work by briefly explaining several
+important biological concepts and puts the work into its context. Chapter
+\ref{ch:background} explains biological phenomena related to the work, some
+concepts and techniques from computer science--basics of recurrent and
+convolutional neural networks (RCNN) and statistical measures used for
+evaluation. Chapter \ref{ch:motivation} talks about further motivation for this
+work, and Chapter \ref{ch:current-research} summarizes current research on the
+topic. Chapter \ref{ch:data} contains an overview of the used data, the
+statistics computed on the data, their source, and the used file types.
+
+Chapter \ref{ch:rcnn} describes the recurrent convolutional networks used for
+splice site classification. It also describes the architecture and training of
+the networks with theoretical and practical reasoning. Chapter
+\ref{ch:automation} talks about how data pre-processing and RCNN training and
+evaluation were automated for fast and reproducible experimentation. And
+finally, Chapter \ref{ch:evaluation} talks about the evaluation and achieved
+results.
+
+Chapter \ref{ch:conclusion} concludes the work and outlines possible further
+work.
