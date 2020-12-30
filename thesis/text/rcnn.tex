@@ -355,14 +355,35 @@ batch size of $m = 16$ was used during training.
 \begin{figure}
   \centering
   \includegraphics[width=0.8\textwidth]{figures/donor_evaluation/training-loss.pdf}
-  \caption{Training and validation loss during training of the donor model}
+  \caption{Training and validation loss during training of the donor model.
+    Locally weighted scatterplot smoothing (LOWESS) is used as a local
+    regression of the training loss.}
   \label{fig:rcnn:training-loss}
 \end{figure}
 
-Over three million samples from 769 organisms were used in the training dataset
-and over 85\,000 samples from 85 organisms were used in the validation dataset.
-See Section \ref{ch:rcnn:dataset-size} that talks about validation dataset size
-selection. After each epoch, training samples were randomly reshuffled.
+Source data comprises of 862 organisms, see Section \ref{ch:data:taxonomy}.
+These were randomly split into training (769 or 90\%), validation (85 or 9\%)
+and test (8 or 1\%) datasets. See Section \ref{ch:evaluation:datasets} for more
+information on the test dataset.
+
+Over three million samples were used in the training dataset and over 85\,000
+samples were used in the validation dataset. The number of samples included in
+the validation dataset is 1000 per organism and is greater than the minimum
+required number of 75\,759 samples as derived in Section
+\ref{ch:rcnn:dataset-size}.
+
+Per organism stratified random sampling was used for the creation of the
+datasets. Donor and acceptor samples were selected independently, i.e. some
+introns might be only half-included.
+
+The training dataset comprises of 30\% of positive samples and the validation
+dataset comprises of 50\% of positive samples. Overrepresentation of the
+negative samples in the training dataset was selected to achieve low false
+positive rate. This is motivated by the low ratio of the number of true splice
+sites to the number of false splice sites in the real-world data. See Section
+\ref{ch:data:stats} which reports various data statistics.
+
+After each epoch, training samples were randomly reshuffled.
 Training and validation loss progression is illustrated by Figure
 \ref{fig:rcnn:training-loss}.
 

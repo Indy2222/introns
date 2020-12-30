@@ -3,7 +3,7 @@
 \minitoc
 
 Research on automated splice site detection goes back to at least 1987. For
-example, work \cite{shapiro1987rna} used the probability of occurrence of
+example, the work \cite{shapiro1987rna} used the probability of occurrence of
 particular nucleic bases at particular positions for splice site detection.
 
 The hidden Markov model and the AdaBoost classifier to detect an intron splice
@@ -15,16 +15,16 @@ neural network applied on triplets from original sequence is described in
 is described in \cite{zuallaert2018splicerover}, which reports that the network
 is most sensitive to nucleotides close to a splice site.
 
-A paper \cite{hassanzadeh2016deeperbind} reports good performance of recurrent
-convolutional neural networks, known as DeeperBind, in detecting the protein
-binding motifs in DNA sequences. DeeperBind encodes DNA sequences with
-one-hot-encoding. The network consists of one convolutional layer, followed by
-two LSTM layers, and finally, the LSTM output is connected to two fully
-connected layers with dropout. The convolutional layers are not followed by max
-pooling layers common in CNN architectures. Strides of convolution is set to
-one. The paper reports that the following LSTM layers are able to deal with
-increased redundancy produced with convolutional layers with stride one and
-without max pooling.
+Good performance of recurrent convolutional neural networks in detecting the
+protein binding motifs in DNA sequences is reported in
+\cite{hassanzadeh2016deeperbind}. The algorithm is named DeeperBind. DeeperBind
+encodes DNA sequences with one-hot-encoding. The network consists of one
+convolutional layer, followed by two LSTM layers, and finally, the LSTM output
+is connected to two fully connected layers with dropout. The convolutional
+layers are not followed by max pooling layers common in CNN architectures.
+Strides of convolution is set to one. The paper reports that the following LSTM
+layers are able to deal with increased redundancy produced with convolutional
+layers with stride one and without max pooling.
 
 The paper \cite{lee2015dna} takes a different approach to RNA sequence
 encoding. The authors report diminished generalization when learning
@@ -35,14 +35,14 @@ compares the performances of ReLU, LSTM, and GRU recurrent units. It is
 concluded that the addition of more RNN layers does not further improve the
 performance and that LSTM units show the best performance.
 
-Article \cite{naito2018human} describes the use of recurrent convolutional
-neural networks for splice site detection in the human genome. Two
-convolutional layers, each succeeded by a max-pooling layer, are followed by a
-bidirectional LSTM recurrent layer. The output of the RNN layer is fed to two
-fully connected layers with soft-max at the final output. Dropout is applied on
-the outputs of all layers. One-hot-encoding is used on the inputs. The paper
-reports improved performance of the network with the RNN layer as compared with
-the same network without that layer.
+The use of recurrent convolutional neural networks for splice site detection in
+the human genome is described in \cite{naito2018human}. Two convolutional
+layers, each succeeded by a max-pooling layer, are followed by a bidirectional
+LSTM recurrent layer. The output of the RNN layer is fed to two fully connected
+layers with soft-max at the final output. Dropout is applied on the outputs of
+all layers. One-hot-encoding is used on the inputs. The paper reports improved
+performance of the network with the RNN layer as compared with the same network
+without that layer.
 
 Past research is mostly based on classical methods; the use of deep neural
 networks for splice site detection is rare. Some methods show almost perfect
@@ -57,6 +57,28 @@ It has been described that the splice site recognition process is complex and
 tissue-specific in humans \cite{pineda2018most}. This complexity may limit the
 maximum achievable accuracy of splice site detection algorithms that work with
 DNA sequences only on out-of-sample organisms.
+
+Performance of convolutional neural networks on various classification problems
+of DNA sequences was evaluated in \cite{nguyen2016dna}. The neural networks
+were evaluated on 12 different datasets and 3 different classification tasks:
+
+\begin{itemize}
+ \item classification of sequences into histone-wrapping and
+   non-histone-wrapping sequences,
+ \item classification of sequences into three groups: sequences containing a
+   donor splice site, sequences containing an acceptor splice site and other
+   sequences,
+ \item classification of DNA sequences into those containing nucleotides of a
+   gene promoter and other sequences.
+\end{itemize}
+
+The input to the neural networks is a sequence of one-hot-encoded 3-mers. The
+networks consist of two convolutional layers followed by a fully connected
+layer with dropout of $0.5$. Softmax output layer is used. Modest accuracy is
+reported in the paper. Accuracy over 96\% is reported for classification of the
+splice sites. The splice site classification task described in the paper is
+different to the one in the thesis because the paper does not solve the
+detection of exact splice site position.
 
 Convolutional neural networks are used in work \cite{senior2020improved} for
 predicting the discrete probability distribution of distances and torsions of
